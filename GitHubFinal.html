@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSX Port Tampa City Spur — Proposed Transit Corridor</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0d1b2e; }
+    #map { width: 100vw; height: 100vh; }
+ 
+    #title {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 10px 24px;
+      color: white;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #title h1 {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    #title p {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 3px;
+      letter-spacing: 1px;
+    }
+ 
+    #legend {
+      position: absolute;
+      bottom: 36px;
+      left: 20px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: white;
+      min-width: 220px;
+    }
+    #legend h3 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .legend-section {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 10px;
+    }
+    .legend-section.red { color: #ff6b6b; }
+    .legend-section.gold { color: #f5c518; }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 7px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+    .legend-line-red {
+      width: 32px;
+      height: 4px;
+      background: #ff6b6b;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #dc2626;
+      flex-shrink: 0;
+    }
+    .legend-line-gold {
+      width: 32px;
+      height: 4px;
+      background: #f5c518;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #b8860b;
+      flex-shrink: 0;
+    }
+    .legend-dot-major {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #ff6b6b;
+      flex-shrink: 0;
+    }
+    .legend-dot-minor {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #ff6b6b;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-dot-streetcar {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #f5c518;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-isochrone-red {
+      width: 28px;
+      height: 16px;
+      border-radius: 3px;
+      background: rgba(255, 107, 107, 0.18);
+      border: 2px dashed rgba(255, 107, 107, 0.8);
+      flex-shrink: 0;
+    }
+
+    .mapboxgl-popup-content {
+      background: rgba(10, 18, 35, 0.95) !important;
+      border-radius: 6px !important;
+      color: white !important;
+      padding: 10px 14px !important;
+      font-family: Arial, sans-serif !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.5px !important;
+    }
+    .mapboxgl-popup-content.red-popup {
+      border: 1px solid rgba(255, 107, 107, 0.4) !important;
+    }
+    .mapboxgl-popup-content.gold-popup {
+      border: 1px solid rgba(245, 197, 24, 0.4) !important;
+    }
+    .mapboxgl-popup-close-button {
+      color: #94a3b8 !important;
+      font-size: 16px !important;
+    }
+    .popup-major { color: #ff6b6b !important; font-size: 14px !important; }
+    .popup-streetcar { color: #f5c518 !important; }
+    .popup-walk-note {
+      font-size: 10px !important;
+      color: #94a3b8 !important;
+      font-weight: 400 !important;
+      margin-top: 4px !important;
+      letter-spacing: 0.3px !important;
+    }
+
+    #pop-toggle {
+      position: absolute;
+      top: 20px;
+      right: 56px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #ff6b6b;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    #pop-toggle:hover { background: rgba(255,107,107,0.12); }
+
+    #layer-toggle {
+      position: absolute;
+      top: 60px;
+      right: 56px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #94a3b8;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #layer-toggle:hover { background: rgba(255,107,107,0.12); }
+    #layer-toggle.active { color: #ff6b6b; border-color: rgba(255,107,107,0.7); }
+    .toggle-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #475569; flex-shrink: 0;
+    }
+    #layer-toggle.active .toggle-dot { background: #ff6b6b; }
+
+    #zoning-legend {
+      position: absolute;
+      bottom: 36px;
+      right: 20px;
+      background: rgba(10, 18, 35, 0.92);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      display: none;
+      min-width: 220px;
+      max-height: 25vh;
+      overflow-y: auto;
+    }
+    #zoning-legend h4 {
+      font-size: 10px; letter-spacing: 2px; color: #ff6b6b;
+      text-transform: uppercase; margin-bottom: 10px; font-weight: 700;
+    }
+    .zl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; color: #cbd5e1; }
+    .zl-swatch { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; opacity: 0.8; }
+
+    #pop-panel {
+      position: absolute;
+      top: 64px;
+      right: 20px;
+      width: 360px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: rgba(10, 18, 35, 0.95);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: none;
+    }
+    #pop-panel h3 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .pop-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .pop-metric {
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 10px 8px;
+    }
+    .pop-metric-label {
+      font-size: 10px;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .pop-metric-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    #pop-status {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      min-height: 16px;
+    }
+    #pop-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+    #pop-table thead tr {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    #pop-table th {
+      color: #94a3b8;
+      font-weight: 600;
+      padding: 5px 4px;
+      text-align: left;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    #pop-table th:not(:first-child) { text-align: right; }
+    #pop-table td { padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; }
+    #pop-table td:not(:first-child) { text-align: right; }
+    #pop-table tr:last-child td { border-bottom: none; }
+    .pop-source {
+      font-size: 10px;
+      color: #475569;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* Isochrone loading indicator */
+    #iso-toast {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 35, 0.92);
+      border: 1px solid rgba(255, 107, 107, 0.4);
+      border-radius: 6px;
+      padding: 7px 16px;
+      color: #94a3b8;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      pointer-events: none;
+      display: none;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+ 
+<div id="map"></div>
+ 
+<div id="title">
+  <h1>CSX Port Tampa City Spur</h1>
+  <p>Proposed Transit Corridor & Streetcar Extension — Tampa, FL</p>
+</div>
+ 
+<div id="legend">
+  <h3>Legend</h3>
+ 
+  <div class="legend-section red">CSX Spur Line</div>
+  <div class="legend-row">
+    <div class="legend-line-red"></div>
+    Proposed rail line
+  </div>
+  <div class="legend-row">
+    <div class="legend-dot-major"></div>
+    Major station
+  </div>
+  <div class="legend-row">
+    <div class="legend-dot-minor"></div>
+    Station stop
+  </div>
+ 
+  <div class="legend-section gold">Streetcar Extension</div>
+  <div class="legend-row">
+    <div class="legend-line-gold"></div>
+    Streetcar route
+  </div>
+  <div class="legend-row">
+    <div class="legend-dot-streetcar"></div>
+    Streetcar stop
+  </div>
+
+  <div class="legend-section red" style="margin-top:12px;">Walk Access</div>
+  <div class="legend-row">
+    <div class="legend-isochrone-red"></div>
+    10-min walk shed
+  </div>
+</div>
+
+<div id="iso-toast">Loading walk zone...</div>
+
+<button id="pop-toggle" onclick="togglePanel()">&#9776; Population Data</button>
+
+<button id="layer-toggle" onclick="toggleZoning()">
+  <span class="toggle-dot"></span> Tampa Zoning
+</button>
+
+<div id="zoning-legend">
+  <h4>City of Tampa Zoning</h4>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:6px 0 4px;">Residential</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,236,225)"></div> RS-150 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,217,196)"></div> RS-100 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,198,166)"></div> RS-75 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,179,137)"></div> RS-60 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(228,141,91)"></div> RS-50 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(223,190,155)"></div> R-3MH Mobile Home</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(199,168,136)"></div> RM-12 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(175,147,117)"></div> RM-16 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(152,126,98)"></div> RM-18 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(128,107,79)"></div> RM-24 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(105,83,61)"></div> RM-35 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(81,62,42)"></div> RM-50 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(46,30,14)"></div> RM-75 Multi Family</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,198,198)"></div> CN Neighborhood Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,113,113)"></div> CG General Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,0,0)"></div> CI Intensive Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(227,204,180)"></div> CD-1 Commercial District 1</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(199,153,135)"></div> CD-2 Commercial District 2</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(191,102,90)"></div> CD-3 Commercial District 3</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(143,51,45)"></div> CBD-1 Central Business</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(115,0,0)"></div> CBD-2 Central Business</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(24,80,142)"></div> UC Urban Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(207,185,0)"></div> CU Commercial Urban</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(219,202,63)"></div> CC Community Commercial</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Office / Professional</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(164,195,196)"></div> RO Residential Office</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(119,165,167)"></div> RO-1 Residential Office</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(73,135,138)"></div> OP Office/Professional</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(6,90,95)"></div> OP-1 Office/Professional</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Planned Development</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(243,237,191)"></div> PD Planned Development</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(231,220,127)"></div> PD-A Planned Development Alt.</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Industrial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(156,156,156)"></div> IG General Industrial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(78,78,78)"></div> IH Heavy Industrial</div>
+
+  <div style="margin-top:10px;font-size:10px;color:#475569;">Source: City of Tampa GIS (arcgis.tampagov.net)</div>
+</div>
+
+<div id="pop-panel" style="display:none;">
+  <h3>Red Line — Population within 1 Mile</h3>
+  <div class="pop-metrics">
+    <div class="pop-metric">
+      <div class="pop-metric-label">Total pop.</div>
+      <div class="pop-metric-value" id="pm-pop">—</div>
+    </div>
+    <div class="pop-metric">
+      <div class="pop-metric-label">Tracts</div>
+      <div class="pop-metric-value" id="pm-tracts">—</div>
+    </div>
+    <div class="pop-metric">
+      <div class="pop-metric-label">Block groups</div>
+      <div class="pop-metric-value" id="pm-income">—</div>
+    </div>
+  </div>
+  <div id="pop-status">Loading census data...</div>
+  <table id="pop-table">
+    <thead>
+      <tr>
+        <th>Station</th>
+        <th>Pop. within 1mi</th>
+        <th colspan="2">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="pop-tbody"></tbody>
+  </table>
+  <div class="pop-source">Source: U.S. Census Bureau, 2023 ACS 5-Year Estimates (B01003, B19013). Tracts identified from red line station coordinates.</div>
+</div>
+
+<script>
+  function togglePanel() {
+    const p = document.getElementById('pop-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function setPopStatus(msg) { document.getElementById('pop-status').textContent = msg; }
+
+  const redStations = [
+    {name:"Columbia / Ybor City", coords:[-82.43511843346539,27.959562174343674]},
+    {name:"Gas Works",            coords:[-82.44522617795658,27.958722929662954]},
+    {name:"Union Station",        coords:[-82.45105295822454,27.953164442037036]},
+    {name:"Downtown",             coords:[-82.45920756080478,27.95065553227566]},
+    {name:"University of Tampa",  coords:[-82.46696910523626,27.9501788689777]},
+    {name:"Kennedy",              coords:[-82.47342082538196,27.94373050481306]},
+    {name:"Hyde Park",            coords:[-82.47881548369719,27.937442686839688]},
+    {name:"SoHo",                 coords:[-82.48306464788192,27.932505297611115]},
+    {name:"W Mississippi",        coords:[-82.48651142180134,27.928657091497996]},
+    {name:"Palma Ceia",           coords:[-82.49320612225347,27.919730433162712]},
+    {name:"El Prado",             coords:[-82.49833878544452,27.911693593428723]},
+    {name:"Intersect",            coords:[-82.515917230013,  27.883978015170868]},
+    {name:"Monroe",               coords:[-82.51975605498008,27.877974229034493]},
+    {name:"Rattlesnake",          coords:[-82.52650390762274,27.886556835133476]},
+    {name:"Port Tampa City",      coords:[-82.5266408189072, 27.866975059939435]},
+    {name:"Tyson",                coords:[-82.53509308467015,27.886863743989124]}
+  ];
+
+  function distMiles(lat1, lon1, lat2, lon2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  async function fetchAllBlockGroups() {
+    const url = `https://api.census.gov/data/2023/acs/acs5?get=B01003_001E,NAME&for=block%20group:*&in=state:12+county:057`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Census API error: ${r.status}`);
+    const rows = await r.json();
+    const headers = rows[0];
+    const popIdx = headers.indexOf('B01003_001E');
+    const stateIdx = headers.indexOf('state');
+    const countyIdx = headers.indexOf('county');
+    const tractIdx = headers.indexOf('tract');
+    const bgIdx = headers.indexOf('block group');
+    return rows.slice(1).map(row => ({
+      pop: parseInt(row[popIdx]) || 0,
+      state: row[stateIdx],
+      county: row[countyIdx],
+      tract: row[tractIdx],
+      bg: row[bgIdx]
+    }));
+  }
+
+  async function getBGCentroid(state, county, tract, bg) {
+    const geoid = `${state}${county}${tract}${bg}`;
+    const url = `https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/10/query?where=GEOID='${geoid}'&outFields=CENTLAT,CENTLON&f=json`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d.features && d.features.length > 0) {
+      const a = d.features[0].attributes;
+      return { lat: parseFloat(a.CENTLAT), lon: parseFloat(a.CENTLON) };
+    }
+    return null;
+  }
+
+  async function loadPopData() {
+    setPopStatus('Loading block group data from Census...');
+    let allBGs;
+    try {
+      allBGs = await fetchAllBlockGroups();
+    } catch(e) {
+      setPopStatus('Error loading Census data: ' + e.message);
+      return;
+    }
+
+    setPopStatus(`Loaded ${allBGs.length} block groups. Calculating centroids... (this takes ~30 sec)`);
+
+    const withCentroids = [];
+    let done = 0;
+    const batchSize = 10;
+    for (let i = 0; i < allBGs.length; i += batchSize) {
+      const batch = allBGs.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(async bg => {
+        try {
+          const c = await getBGCentroid(bg.state, bg.county, bg.tract, bg.bg);
+          return c ? { ...bg, lat: c.lat, lon: c.lon } : null;
+        } catch(e) { return null; }
+      }));
+      results.forEach(r => { if (r) withCentroids.push(r); });
+      done += batch.length;
+      setPopStatus(`Calculating centroids... ${Math.min(done, allBGs.length)} / ${allBGs.length}`);
+    }
+
+    setPopStatus('Computing 1-mile population for each station...');
+
+    const rows = [];
+    let corridorBGs = new Set();
+    for (const s of redStations) {
+      let stationPop = 0;
+      for (const bg of withCentroids) {
+        const d = distMiles(s.coords[1], s.coords[0], bg.lat, bg.lon);
+        if (d <= 1.0) {
+          stationPop += bg.pop;
+          corridorBGs.add(`${bg.state}${bg.county}${bg.tract}${bg.bg}`);
+        }
+      }
+      rows.push({ name: s.name, pop: stationPop });
+    }
+
+    let totalPop = 0;
+    for (const bg of withCentroids) {
+      const key = `${bg.state}${bg.county}${bg.tract}${bg.bg}`;
+      if (corridorBGs.has(key)) totalPop += bg.pop;
+    }
+
+    document.getElementById('pm-pop').textContent = totalPop.toLocaleString();
+    document.getElementById('pm-tracts').textContent = corridorBGs.size + ' BGs';
+    document.getElementById('pm-income').textContent = '2023 ACS';
+
+    const tbody = document.getElementById('pop-tbody');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-size:11px;">${r.name}</td><td>${r.pop.toLocaleString()}</td><td colspan="2" style="color:#94a3b8;font-size:10px;">within 1 mi</td>`;
+      tbody.appendChild(tr);
+    });
+
+    setPopStatus(`Complete — population within 1 mile of each station, 2023 ACS 5-Year.`);
+  }
+
+  window.addEventListener('load', loadPopData);
+</script>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<script>
+  // -------------------------------------------------------
+  // MAPBOX TOKEN
+  // -------------------------------------------------------
+  mapboxgl.accessToken = '';
+
+  // -------------------------------------------------------
+  // OPENROUTESERVICE API KEY
+  // Get a free key at openrouteservice.org — 2,000 req/day free
+  // -------------------------------------------------------
+  const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijk3ZjdkYjhiNzc3ZDQ5NDBhYWY3NDJmMTE1NWU1OTMxIiwiaCI6Im11cm11cjY0In0=';
+
+  // -------------------------------------------------------
+  // ISOCHRONE: fetch 10-min walk shed from ORS and display
+  // lineColor: 'red' | 'gold'
+  // -------------------------------------------------------
+  async function showWalkIsochrone(lngLat, stationName, lineColor) {
+    const toast = document.getElementById('iso-toast');
+    toast.style.display = 'block';
+
+    // Remove previous isochrone layers/source if they exist
+    ['isochrone-fill', 'isochrone-border'].forEach(id => {
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource('isochrone')) map.removeSource('isochrone');
+
+    const color      = lineColor === 'gold' ? '#f5c518' : '#ff6b6b';
+
+    try {
+      const res = await fetch('https://api.openrouteservice.org/v2/isochrones/foot-walking', {
+        method: 'POST',
+        headers: {
+          'Authorization': ORS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          locations: [[lngLat.lng, lngLat.lat]],
+          range: [600],        // 600 seconds = 10 minutes
+          range_type: 'time',
+          smoothing: 0.8
+        })
+      });
+
+      if (!res.ok) {
+        console.error('ORS error:', res.status, await res.text());
+        toast.style.display = 'none';
+        return;
+      }
+
+      const geojson = await res.json();
+
+      map.addSource('isochrone', { type: 'geojson', data: geojson });
+
+      // Filled walk shed — inserted below transit lines so they stay on top
+      map.addLayer({
+        id: 'isochrone-fill',
+        type: 'fill',
+        source: 'isochrone',
+        paint: {
+          'fill-color': color,
+          'fill-opacity': 0.13
+        }
+      }, 'line-glow-outer');
+
+      // Dashed border
+      map.addLayer({
+        id: 'isochrone-border',
+        type: 'line',
+        source: 'isochrone',
+        paint: {
+          'line-color': color,
+          'line-width': 2,
+          'line-opacity': 0.75,
+          'line-dasharray': [3, 2]
+        }
+      }, 'line-glow-outer');
+
+    } catch (err) {
+      console.error('Failed to fetch isochrone:', err);
+    }
+
+    toast.style.display = 'none';
+  }
+
+  // ── MAP DATA ──
+
+  const lineData = {
+    "type": "FeatureCollection",
+    "features": [{
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [[-82.42661712716196,27.959570024609604],[-82.42680286943397,27.959570024609604],[-82.426956668767,27.959570024609604],[-82.42710928502858,27.95957211457369],[-82.42731277337731,27.959568979627804],[-82.42757554896367,27.959567360956243],[-82.42836879714078,27.95957254611612],[-82.42981575470407,27.959570289768294],[-82.43159829973098,27.959571937810153],[-82.43255587825143,27.959567023821492],[-82.4330499410535,27.959568409202475],[-82.43458875612679,27.959573950330764],[-82.43552353971722,27.959572564358822],[-82.43622111933587,27.959570212902378],[-82.43711995563602,27.95957162524509],[-82.4382194293119,27.959571624994012],[-82.43993351381617,27.95956848250991],[-82.44118345769348,27.959573965248964],[-82.44190187201148,27.959573626385364],[-82.4422736338957,27.95956913128761],[-82.44248223818963,27.95954973594671],[-82.44287512779984,27.95951288699453],[-82.44313862796105,27.959472710906837],[-82.44354280331477,27.95939527853035],[-82.44363676473843,27.959367939244146],[-82.44393412501,27.959282992128408],[-82.44412094242914,27.959218549445055],[-82.44435052041699,27.959133937306916],[-82.44449254097069,27.959079968220834],[-82.4447622932415,27.958967126222788],[-82.44502031903193,27.958841995271115],[-82.4452877273889,27.95869565794692],[-82.44569365525214,27.958451059570592],[-82.44600898627684,27.958225932825314],[-82.44625346434758,27.9580331701042],[-82.44644419682344,27.95786963712625],[-82.44667985579495,27.957654884176392],[-82.44686804567291,27.957455495059648],[-82.44711915278583,27.957187396730006],[-82.44776536937104,27.956492493422544],[-82.44820623677107,27.956014082873324],[-82.4486925873234,27.95549233548428],[-82.44913068755926,27.955018653033406],[-82.44944132982754,27.954688171940887],[-82.44964744055675,27.954461816003516],[-82.44992897337444,27.954159309372784],[-82.4503232692128,27.953748014771975],[-82.45042243136295,27.9536525356107],[-82.45056900693528,27.953524581067455],[-82.45079987192072,27.95334180183083],[-82.4509137683692,27.953257605182984],[-82.4512520910974,27.953052803787486],[-82.45151596631722,27.952918775385754],[-82.45167255725401,27.952851026009398],[-82.45184601647829,27.952780660515216],[-82.45200592128006,27.95272164278012],[-82.45235953049072,27.95261606057028],[-82.45267390083583,27.952547137973156],[-82.45303127808646,27.952487737810984],[-82.45367077530929,27.952388026374763],[-82.45438488629776,27.952274226121688],[-82.45470539058303,27.95221908290638],[-82.45488240627316,27.95217307924632],[-82.45493008573881,27.952156718489462],[-82.45581358281797,27.9518459955666],[-82.45596019943422,27.95180254644417],[-82.45680863505933,27.951517869721258],[-82.45772230678193,27.951201027942247],[-82.45833654066494,27.950970722136177],[-82.45922327107705,27.9506757813991],[-82.45945700995232,27.950597197442306],[-82.46021683204731,27.950342085225785],[-82.46084294538623,27.950137591897516],[-82.46117286453672,27.95006718804862],[-82.46140058328749,27.95003328006659],[-82.46156472513456,27.9500079146178],[-82.46297038616927,27.949894332898822],[-82.46331059775912,27.9499149401136],[-82.46386810984362,27.949938873069314],[-82.46398953531859,27.94994914525948],[-82.46520475797125,27.94999189044283],[-82.46560142255214,27.95004182402917],[-82.46656200447725,27.950107127362884],[-82.46724325568844,27.950137389128187],[-82.46776241270824,27.950065431074307],[-82.46799374314307,27.949972802595482],[-82.46820255330091,27.94989278240378],[-82.46861390704882,27.949690053821612],[-82.46894727513217,27.949390392666004],[-82.46963810441201,27.948674105851495],[-82.46982039793525,27.948462504961824],[-82.47016325040389,27.947986535480908],[-82.47060779204489,27.947437871521558],[-82.47149074492054,27.946291617203713],[-82.47204531994522,27.945518747374734],[-82.47237940504564,27.945033679576753],[-82.47258408908674,27.94475289595819],[-82.47282771475821,27.94450755896274],[-82.4731940022158,27.944003019842967],[-82.4737099585666,27.943342396367242],[-82.47472092888776,27.94224253261136],[-82.47534835267471,27.941595235997298],[-82.4765354118807,27.940144296863693],[-82.47777218969536,27.9386512462535],[-82.47840538968528,27.93785869379502],[-82.47908336620347,27.937028281569567],[-82.48003638589768,27.93595075488446],[-82.48080689579182,27.93506326983814],[-82.4817963170639,27.93398056470481],[-82.48284524856383,27.93275288265889],[-82.48396846924295,27.93146531336329],[-82.48541472265441,27.929852252559627],[-82.48666593304594,27.9284667712336],[-82.48782574644159,27.927171303819947],[-82.4890330462657,27.925804572609835],[-82.489613962846,27.92510159837451],[-82.49002186105108,27.924503298926965],[-82.49085260317017,27.923287937060195],[-82.49170549480948,27.921985508510375],[-82.49246825903802,27.920748315236224],[-82.49309205686984,27.91982540629448],[-82.49404869094707,27.918336527495484],[-82.49452022243648,27.917575290670385],[-82.49515592717064,27.916545611857217],[-82.49604678912469,27.915175912628314],[-82.49706761267439,27.91359319878289],[-82.49785853487957,27.91233163741255]],
+          [[-82.49785443179859,27.91233163741255],[-82.49819667542015,27.91184821397482],[-82.49835937620797,27.91161881940218],[-82.50055935718767,27.908210657497108],[-82.5014229971514,27.90679142401858],[-82.50238808886,27.90531882092445],[-82.50313213244404,27.904318200946136],[-82.5050491136566,27.900651517654893],[-82.5054964700467,27.900102819773153],[-82.50654506352714,27.898545128317053],[-82.50742883871202,27.897175618089292],[-82.51018160007689,27.892814749781806],[-82.51173769770963,27.89032771858787],[-82.51227698232131,27.88943144139823],[-82.51418652666733,27.88648534296179],[-82.51649502990844,27.883149954652396],[-82.51742002760022,27.881666440302013],[-82.51981977975123,27.877839958321275],[-82.52185472374195,27.874366076008798],[-82.52533978596094,27.86887857582822],[-82.52748717774459,27.865720084035615],[-82.52873219441211,27.864087241222293],[-82.5297690746749,27.863574704773626],[-82.53107814353918,27.86315552021611],[-82.53207041432492,27.86296674374327],[-82.53266063054924,27.862887417377408],[-82.5334280837834,27.862788391113853],[-82.53633813218346,27.862725715190678],[-82.53852946815539,27.862884932465818],[-82.54124902766742,27.862914827707954],[-82.54213015737491,27.862954682016976],[-82.54249953637472,27.862954682016976],[-82.54292488189091,27.862954682016976],[-82.54336142070943,27.862954682016976],[-82.5437079951775,27.86289487825175],[-82.544971313885,27.862838878984576],[-82.5462777722525,27.862809098566316],[-82.54761348692429,27.8626108993666],[-82.54879059361238,27.862452760682658],[-82.55083656585073,27.86223186010396]],
+          [[-82.51548178037183,27.884621896622363],[-82.51548810746262,27.88485154592503]],
+          [[-82.51548808085036,27.88485794227053],[-82.51549438918131,27.885101696017486],[-82.51551556689205,27.885308014657113],[-82.5155737517532,27.88547636198267],[-82.5156691195724,27.88558678297366],[-82.51583107125477,27.885710521536083],[-82.51597866335761,27.8858019189106],[-82.51620785844888,27.885900054047482],[-82.51647450086203,27.885991842882476],[-82.51672669300642,27.886064095860135],[-82.51712793853231,27.886169400946514],[-82.51758181979078,27.88626174753263],[-82.51788690286006,27.88630138326498],[-82.51816272606568,27.886347669496843],[-82.51877248895269,27.886385116248135],[-82.51983195307203,27.88647718983202],[-82.52108426954231,27.886490358760696],[-82.52332306960818,27.88651753199788],[-82.52452337036871,27.88652411597299],[-82.52515685734772,27.886517527024623],[-82.52629771356696,27.88652411002515],[-82.52661651226163,27.88653727894807],[-82.52699532306659,27.886554540768216],[-82.52716619648072,27.886593994982974],[-82.52742785992467,27.886725762069148],[-82.52762935002613,27.886785184594004],[-82.52844608204992,27.886798400356938],[-82.53109759142035,27.886833120342843],[-82.53429354634258,27.886852724055203],[-82.53510598321935,27.88686579801093]]
+        ]
+      }
+    }]
+  };
+ 
+  const stationData = {
+    "type": "FeatureCollection",
+    "features": [
+      {"type":"Feature","properties":{"name":"Columbia / Ybor City","major":false},"geometry":{"type":"Point","coordinates":[-82.43511843346539,27.959562174343674]}},
+      {"type":"Feature","properties":{"name":"Gas Works","major":true},"geometry":{"type":"Point","coordinates":[-82.44522617795658,27.958722929662954]}},
+      {"type":"Feature","properties":{"name":"Union Station","major":true},"geometry":{"type":"Point","coordinates":[-82.45105295822454,27.953164442037036]}},
+      {"type":"Feature","properties":{"name":"Downtown","major":true},"geometry":{"type":"Point","coordinates":[-82.45920756080478,27.95065553227566]}},
+      {"type":"Feature","properties":{"name":"University of Tampa","major":false},"geometry":{"type":"Point","coordinates":[-82.46696910523626,27.9501788689777]}},
+      {"type":"Feature","properties":{"name":"Kennedy","major":false},"geometry":{"type":"Point","coordinates":[-82.47342082538196,27.94373050481306]}},
+      {"type":"Feature","properties":{"name":"Hyde Park","major":false},"geometry":{"type":"Point","coordinates":[-82.47881548369719,27.937442686839688]}},
+      {"type":"Feature","properties":{"name":"SoHo","major":false},"geometry":{"type":"Point","coordinates":[-82.48306464788192,27.932505297611115]}},
+      {"type":"Feature","properties":{"name":"W Mississippi","major":false},"geometry":{"type":"Point","coordinates":[-82.48651142180134,27.928657091497996]}},
+      {"type":"Feature","properties":{"name":"Palma Ceia","major":false},"geometry":{"type":"Point","coordinates":[-82.49320612225347,27.919730433162712]}},
+      {"type":"Feature","properties":{"name":"El Prado","major":false},"geometry":{"type":"Point","coordinates":[-82.49833878544452,27.911693593428723]}},
+      {"type":"Feature","properties":{"name":"Intersect","major":false},"geometry":{"type":"Point","coordinates":[-82.515917230013,27.883978015170868]}},
+      {"type":"Feature","properties":{"name":"Monroe","major":false},"geometry":{"type":"Point","coordinates":[-82.51975605498008,27.877974229034493]}},
+      {"type":"Feature","properties":{"name":"Rattlesnake","major":false},"geometry":{"type":"Point","coordinates":[-82.52650390762274,27.886556835133476]}},
+      {"type":"Feature","properties":{"name":"Port Tampa City","major":false},"geometry":{"type":"Point","coordinates":[-82.5266408189072,27.866975059939435]}},
+      {"type":"Feature","properties":{"name":"Tyson","major":false},"geometry":{"type":"Point","coordinates":[-82.53509308467015,27.886863743989124]}}
+    ]
+  };
+ 
+  const streetcarLine = {
+    "type": "FeatureCollection",
+    "features": [{
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-82.4372496597748,27.960999817523003],[-82.43836452084388,27.961010405908965],[-82.43988489900258,27.961022501304],[-82.44199223139378,27.96102514838374],[-82.44397600316655,27.961033919619837],[-82.44522889377922,27.96104091499869],[-82.44531332414596,27.961036708664423],[-82.44536567092894,27.96102395385884],[-82.44541079746551,27.96100003859479],[-82.44543065314181,27.960974528973438],[-82.44544870375665,27.960950613698387],[-82.44545592400256,27.96092032100806],[-82.44545953412504,27.96085335819066],[-82.44545953412504,27.96079596145617],[-82.44545953412504,27.96072421549559],[-82.44545953412504,27.960674790472908],[-82.44545411894107,27.96061420493072],[-82.44546314424798,27.960478684514314],[-82.44546394705972,27.96014148758337],[-82.4454606466958,27.959686043346096],[-82.44543637812345,27.959385176524037],[-82.44543637812345,27.95927731345499],[-82.44543472790146,27.95909948491608],[-82.44543967856735,27.958867724331554],[-82.44543967856735,27.95879630115887],[-82.44543472748391,27.958767148904812],[-82.44542977681805,27.95874819988684],[-82.4454116243764,27.95872196277901],[-82.44538357060347,27.958676776634277],[-82.44536211771793,27.958627217614648],[-82.44535056616417,27.958592234764396],[-82.44533241372301,27.958555794282034],[-82.44533241372301,27.958509150448023],[-82.44533736438889,27.958466879455685],[-82.44537641594606,27.95837274294874],[-82.44541272082886,27.958272166984642],[-82.44544077460225,27.958200743417095],[-82.44547047859717,27.95808121815766],[-82.44547872970698,27.957987930058536],[-82.44547503433391,27.957731510495236],[-82.44547668450656,27.95740291433421],[-82.44547173384066,27.95718281121232],[-82.44547833488636,27.956773369363773],[-82.44547338422046,27.956454144947287],[-82.44547965587387,27.95619501363204],[-82.44547470520794,27.956008434093178],[-82.44547470520794,27.95586704157077],[-82.44547800565189,27.955779582186437],[-82.44547074242203,27.95572427471741],[-82.44546249131221,27.95565576478154],[-82.44545754064632,27.955585797142973],[-82.44544598909256,27.955501252851533],[-82.44543113709489,27.955387555252628],[-82.44542453620703,27.95529134949855],[-82.4454113340845,27.954936097778585],[-82.44538976622098,27.954585444060555],[-82.44538283618526,27.95440065071132],[-82.44538118596329,27.954319020845304],[-82.44538118596329,27.954246136985006],[-82.44537953574132,27.95416013396604],[-82.44538448640722,27.95407121551851],[-82.44538943707312,27.953980839316813],[-82.44539593753265,27.95353756386106],[-82.44541682603793,27.95302810582757],[-82.44543305216304,27.952405400518813],[-82.44545450568296,27.95187188462681],[-82.44545450568296,27.95155410343139],[-82.4454693578444,27.951183575828196],[-82.44548321330626,27.950766356854686],[-82.44549641508152,27.950514170190402],[-82.44550734934955,27.950145975236182],[-82.44552551111644,27.949651123995153],[-82.44553302972153,27.94923586227509],[-82.44555118216266,27.948821861804348],[-82.44556108377402,27.948389636700057],[-82.44556768466188,27.948089338388215],[-82.44557428554974,27.947861927460877],[-82.4455775856886,27.94754974652116],[-82.44558583679841,27.94734420102273],[-82.44559408796412,27.947073542335048],[-82.44560233907396,27.9468315514916],[-82.4456112914868,27.946528307206123],[-82.44562614348449,27.9461828123449],[-82.44562779309825,27.945966472568088],[-82.44563934465198,27.945718648072926],[-82.44563714467661,27.945505373998373],[-82.4456420953425,27.945388750279534],[-82.4456420953425,27.945328980574814],[-82.44563714427026,27.945289427480716],[-82.44561734160668,27.945244235714327],[-82.44559918916507,27.94521653752497],[-82.44555793361641,27.94517863472933],[-82.44552327895515,27.94514802092209],[-82.4454985256261,27.945107202500296],[-82.44548367362843,27.945085335481423],[-82.44545561985505,27.945029939015697],[-82.44544571852371,27.944967253506476],[-82.44545727007699,27.944900194548964],[-82.44549027451629,27.944828762136595],[-82.445566847819,27.944764279182294],[-82.4456246055873,27.944724918421286],[-82.44569556513135,27.944641823433926],[-82.4457252691267,27.944561643999506],[-82.44578642178506,27.944407356259816],[-82.44585573110712,27.94430093604001],[-82.44604550663216,27.94408809528423],[-82.44614340052823,27.944022601433716],[-82.44622591162602,27.94397740913729],[-82.4464503418119,27.94391618083482],[-82.44716239954012,27.94371337090928],[-82.44799212014294,27.94348257254245],[-82.44806142946501,27.943469452134167],[-82.4481043352361,27.943465078664914],[-82.448181895668,27.94346216301838],[-82.44908485501377,27.943462163174004],[-82.45031772407883,27.943453714858734],[-82.45036558051535,27.94345225703495],[-82.45040518584206,27.943437678799796],[-82.45043819028136,27.943412895795845],[-82.45046294361083,27.943392486258617],[-82.45048109605197,27.943345835873316],[-82.45048274627395,27.94323649895503],[-82.45049211556308,27.94274983575346],[-82.45049211556308,27.942643413900583],[-82.45049871645094,27.9425763535003],[-82.45051177545969,27.94251453802991],[-82.45053157812279,27.942476634285313],[-82.45055633145226,27.94242269431855],[-82.45058603544719,27.94238479054171],[-82.45062564077432,27.942325019174703],[-82.45067019676692,27.94228565752482],[-82.45072795453525,27.942246295860656],[-82.45078076163811,27.942217139062805],[-82.45085007096019,27.94219089793802],[-82.45113393573598,27.94210638373272],[-82.45126760371423,27.94206993768661],[-82.4515543005533,27.941986281364905],[-82.45191899960525,27.94190026858199],[-82.45214838045655,27.941849244017547],[-82.45231835331802,27.941812797884666],[-82.45272481488226,27.94171194721754],[-82.4529756486191,27.94165071763095],[-82.45348068238928,27.941524296869176],[-82.45393048558786,27.94141737383677],[-82.4540988082269,27.941369264747323],[-82.45416502107115,27.941361143361647],[-82.45427888638628,27.94135239625146],[-82.45438285036913,27.94136697476806],[-82.4545016663497,27.94139904749764],[-82.45471619520377,27.941487976379577],[-82.45509873094014,27.94163612793102],[-82.45523734958428,27.941730888004514],[-82.45527860513293,27.941821274458306],[-82.45548797508258,27.9422980587552],[-82.45578158647653,27.942978515427086],[-82.45603656357743,27.943554038830726],[-82.45643571173714,27.944468541829778],[-82.45669892381342,27.945074303230953],[-82.45682968261072,27.945360692853725],[-82.45601698968747,27.94565674811625],[-82.45623050530146,27.94619773217434],[-82.45645941764953,27.94668866047546],[-82.45670767871918,27.94719686771687],[-82.45701814768098,27.947956562577176],[-82.45734900279602,27.948711516792443],[-82.45774310159422,27.949606126546826],[-82.45806706496683,27.950257125134158],[-82.45827010606209,27.95070551754175],[-82.45861094679589,27.951516672593456],[-82.45906654609765,27.952552213350828],[-82.45942825983445,27.953356024519593],[-82.45950135462937,27.953564072856594],[-82.45950135462937,27.953700380170673],[-82.45950135462937,27.95399451642018],[-82.45949729380743,27.95423125964929],[-82.45947421533901,27.954851950073703],[-82.45947421533901,27.955350541096095],[-82.4594739486678,27.956220876930786],[-82.45948613113305,27.956988481197428],[-82.45947656017192,27.957823820962233],[-82.45946843852806,27.958756409716344],[-82.45946244702569,27.959390842001767],[-82.45946622818312,27.960278023696674],[-82.45946216736118,27.961250045850008],[-82.45946167613104,27.962230564218927],[-82.46091545037505,27.9622700184497],[-82.46092357201894,27.961506038513406],[-82.4609316936628,27.96103617023401],[-82.46093084558194,27.959942780715537],[-82.46094302804775,27.959397581953283],[-82.46095214222014,27.958553077084304],[-82.46096838610123,27.957672000833966],[-82.46097650774509,27.956760924297512],[-82.46096838612767,27.955450822450544],[-82.46098892631032,27.954049196057994],[-82.46099704795421,27.953464510095856],[-82.46099704795421,27.95291210449909],[-82.46101329099497,27.95262450324094],[-82.46099298688529,27.952524065288827],[-82.46095643948841,27.952330363259208],[-82.46086710140632,27.952140247966327],[-82.46069376750853,27.951716780106253],[-82.46051509134436,27.951275566124025],[-82.46007640840632,27.950251087571473],[-82.45969419967604,27.949362566213267],[-82.45934496966053,27.94861284607157],[-82.45898108737995,27.94770735066247],[-82.45869276902395,27.94711545585845],[-82.45839242319411,27.946410388133515],[-82.45809192295692,27.94573239061839],[-82.45784421282033,27.945154834256385],[-82.45780766542345,27.945083087909268],[-82.45701174432847,27.94531267605339],[-82.45682900734235,27.945359311085937]]
+      }
+    }]
+  };
+ 
+  const streetcarStations = {
+    "type": "FeatureCollection",
+    "features": [
+      {"type":"Feature","properties":{"name":"Centennial Park"},"geometry":{"type":"Point","coordinates":[-82.43724641642731,27.96099934554472]}},
+      {"type":"Feature","properties":{"name":"Centro Ybor"},"geometry":{"type":"Point","coordinates":[-82.44128128999138,27.96101857843152]}},
+      {"type":"Feature","properties":{"name":"Streetcar Society"},"geometry":{"type":"Point","coordinates":[-82.44337420760375,27.96103084191388]}},
+      {"type":"Feature","properties":{"name":"Cadrecha Plaza"},"geometry":{"type":"Point","coordinates":[-82.44546495650764,27.960609251149805]}},
+      {"type":"Feature","properties":{"name":"Port Tampa Bay"},"geometry":{"type":"Point","coordinates":[-82.44545441945867,27.95156485975876]}},
+      {"type":"Feature","properties":{"name":"York Street"},"geometry":{"type":"Point","coordinates":[-82.44555954105334,27.948219684529434]}},
+      {"type":"Feature","properties":{"name":"Cumberland Ave"},"geometry":{"type":"Point","coordinates":[-82.44564046272593,27.945743649788525]}},
+      {"type":"Feature","properties":{"name":"Water Street"},"geometry":{"type":"Point","coordinates":[-82.44854776940194,27.943459185242148]}},
+      {"type":"Feature","properties":{"name":"HSBC"},"geometry":{"type":"Point","coordinates":[-82.45196657963196,27.94188779631527]}},
+      {"type":"Feature","properties":{"name":"Dick Greco Plaza"},"geometry":{"type":"Point","coordinates":[-82.45478135847988,27.941527312330805]}},
+      {"type":"Feature","properties":{"name":"Whiting Hilton"},"geometry":{"type":"Point","coordinates":[-82.456757719803,27.945191079966477]}},
+      {"type":"Feature","properties":{"name":"City Hall"},"geometry":{"type":"Point","coordinates":[-82.45692471074521,27.947730056017406]}},
+      {"type":"Feature","properties":{"name":"Fortune"},"geometry":{"type":"Point","coordinates":[-82.45948467308722,27.954507367215726]}},
+      {"type":"Feature","properties":{"name":"Theatre Plaza"},"geometry":{"type":"Point","coordinates":[-82.4594604421857,27.958670993865653]}},
+      {"type":"Feature","properties":{"name":"Tampa Heights"},"geometry":{"type":"Point","coordinates":[-82.46013734675549,27.962237177666708]}},
+      {"type":"Feature","properties":{"name":"Riverside"},"geometry":{"type":"Point","coordinates":[-82.46095715403796,27.959490064600487]}},
+      {"type":"Feature","properties":{"name":"Massey Park"},"geometry":{"type":"Point","coordinates":[-82.46091644664672,27.952292996757137]}},
+      {"type":"Feature","properties":{"name":"RiverWalk"},"geometry":{"type":"Point","coordinates":[-82.45881632201082,27.947402262418223]}}
+    ]
+  };
+ 
+  const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/navigation-night-v1",
+    center: [-82.49, 27.918],
+    zoom: 11.5,
+    pitch: 0,
+    bearing: 0
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+  map.on("load", () => {
+
+    map.addSource('hc-zoning', {
+      type: 'raster',
+      tiles: [
+        'https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&f=image&layers=show:28'
+      ],
+      tileSize: 512,
+      attribution: '© City of Tampa GIS'
+    });
+    map.addLayer({
+      id: 'hc-zoning-layer',
+      type: 'raster',
+      source: 'hc-zoning',
+      paint: { 'raster-opacity': 0.7 },
+      layout: { visibility: 'none' }
+    }, 'line-glow-outer');
+
+    map.addSource('transit-line', { type: 'geojson', data: lineData });
+    map.addLayer({ id: 'line-glow-outer', type: 'line', source: 'transit-line', paint: { 'line-color': '#6b0000', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'line-glow-inner', type: 'line', source: 'transit-line', paint: { 'line-color': '#dc2626', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'line-core', type: 'line', source: 'transit-line', paint: { 'line-color': '#ff6b6b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+ 
+    map.addSource('streetcar-line', { type: 'geojson', data: streetcarLine });
+    map.addLayer({ id: 'streetcar-glow-outer', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#7a5c00', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'streetcar-glow-inner', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#c9a000', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'streetcar-core', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#f5c518', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+ 
+    map.addSource('stations', { type: 'geojson', data: stationData });
+    map.addLayer({ id: 'station-glow', type: 'circle', source: 'stations', filter: ['==', ['get', 'major'], true], paint: { 'circle-radius': 16, 'circle-color': '#ff6b6b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'station-bg', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 10, 7], 'circle-color': '#0a1223', 'circle-stroke-width': ['case', ['==', ['get', 'major'], true], 3, 2], 'circle-stroke-color': '#ff6b6b' } });
+    map.addLayer({ id: 'station-dot', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 4.5, 3], 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': ['case', ['==', ['get', 'major'], true], 13, 11], 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': ['case', ['==', ['get', 'major'], true], '#ff6b6b', '#ffffff'], 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+ 
+    map.addSource('streetcar-stations', { type: 'geojson', data: streetcarStations });
+    map.addLayer({ id: 'streetcar-station-bg', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 6, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#f5c518' } });
+    map.addLayer({ id: 'streetcar-station-dot', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'streetcar-labels', type: 'symbol', source: 'streetcar-stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#f5c518', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+ 
+    // ── CLICK: Red line stations → show walk isochrone + popup ──
+    map.on('click', 'station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`
+          <span class="${props.major ? 'popup-major' : ''}">${props.name}</span>
+          <div class="popup-walk-note">⬤ 10-min walk zone loading...</div>
+        `)
+        .addTo(map);
+
+      showWalkIsochrone(lngLat, props.name, 'red');
+    });
+ 
+    // ── CLICK: Gold line stations → show walk isochrone + popup ──
+    map.on('click', 'streetcar-station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`
+          <span class="popup-streetcar">${props.name}</span>
+          <div class="popup-walk-note" style="color:#f5c518aa;">⬤ 10-min walk zone loading...</div>
+        `)
+        .addTo(map);
+
+      showWalkIsochrone(lngLat, props.name, 'gold');
+    });
+ 
+    map.on('mouseenter', 'station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = ''; });
+
+    // ── CLICK on empty map → clear isochrone ──
+    map.on('click', (e) => {
+      const stationFeatures = map.queryRenderedFeatures(e.point, {
+        layers: ['station-bg', 'streetcar-station-bg']
+      });
+      if (stationFeatures.length === 0) {
+        if (map.getLayer('isochrone-fill')) map.removeLayer('isochrone-fill');
+        if (map.getLayer('isochrone-border')) map.removeLayer('isochrone-border');
+        if (map.getSource('isochrone')) map.removeSource('isochrone');
+      }
+    });
+  });
+
+  let zoningOn = false;
+  function toggleZoning() {
+    zoningOn = !zoningOn;
+    const btn = document.getElementById('layer-toggle');
+    const legend = document.getElementById('zoning-legend');
+    if (zoningOn) {
+      map.setLayoutProperty('hc-zoning-layer', 'visibility', 'visible');
+      map.setStyle('mapbox://styles/mapbox/light-v11');
+      map.once('style.load', () => {
+        map.addSource('hc-zoning', {
+          type: 'raster',
+          tiles: ['https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&f=image&layers=show:28'],
+          tileSize: 512,
+          attribution: '© City of Tampa GIS'
+        });
+        map.addLayer({ id: 'hc-zoning-layer', type: 'raster', source: 'hc-zoning', paint: { 'raster-opacity': 0.7 } });
+        reAddTransitLayers();
+      });
+      btn.classList.add('active');
+      legend.style.display = 'block';
+    } else {
+      map.setStyle('mapbox://styles/mapbox/navigation-night-v1');
+      map.once('style.load', () => { reAddTransitLayers(); });
+      btn.classList.remove('active');
+      legend.style.display = 'none';
+    }
+  }
+
+  function reAddTransitLayers() {
+    map.addSource('transit-line', { type: 'geojson', data: lineData });
+    map.addLayer({ id: 'line-glow-outer', type: 'line', source: 'transit-line', paint: { 'line-color': '#6b0000', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'line-glow-inner', type: 'line', source: 'transit-line', paint: { 'line-color': '#dc2626', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'line-core', type: 'line', source: 'transit-line', paint: { 'line-color': '#ff6b6b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('streetcar-line', { type: 'geojson', data: streetcarLine });
+    map.addLayer({ id: 'streetcar-glow-outer', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#7a5c00', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'streetcar-glow-inner', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#c9a000', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'streetcar-core', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#f5c518', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('stations', { type: 'geojson', data: stationData });
+    map.addLayer({ id: 'station-glow', type: 'circle', source: 'stations', filter: ['==', ['get', 'major'], true], paint: { 'circle-radius': 16, 'circle-color': '#ff6b6b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'station-bg', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 10, 7], 'circle-color': '#0a1223', 'circle-stroke-width': ['case', ['==', ['get', 'major'], true], 3, 2], 'circle-stroke-color': '#ff6b6b' } });
+    map.addLayer({ id: 'station-dot', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 4.5, 3], 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': ['case', ['==', ['get', 'major'], true], 13, 11], 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': ['case', ['==', ['get', 'major'], true], '#ff6b6b', '#ffffff'], 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    map.addSource('streetcar-stations', { type: 'geojson', data: streetcarStations });
+    map.addLayer({ id: 'streetcar-station-bg', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 6, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#f5c518' } });
+    map.addLayer({ id: 'streetcar-station-dot', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'streetcar-labels', type: 'symbol', source: 'streetcar-stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#f5c518', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.on('click', 'station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="${props.major ? 'popup-major' : ''}">${props.name}</span><div class="popup-walk-note">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'red');
+    });
+    map.on('click', 'streetcar-station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-streetcar">${props.name}</span><div class="popup-walk-note" style="color:#f5c518aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'gold');
+    });
+    map.on('mouseenter', 'station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('click', (e) => {
+      const stationFeatures = map.queryRenderedFeatures(e.point, {
+        layers: ['station-bg', 'streetcar-station-bg']
+      });
+      if (stationFeatures.length === 0) {
+        if (map.getLayer('isochrone-fill')) map.removeLayer('isochrone-fill');
+        if (map.getLayer('isochrone-border')) map.removeLayer('isochrone-border');
+        if (map.getSource('isochrone')) map.removeSource('isochrone');
+      }
+    });
+  }
+
+</script>
+</body>
+</html>
