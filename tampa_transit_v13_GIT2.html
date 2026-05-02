@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tampa Transit Master Plan</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0d1b2e; }
+    #map { width: 100vw; height: 100vh; }
+ 
+    #title {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 10px 24px;
+      color: white;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #title h1 {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    #title p {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 3px;
+      letter-spacing: 1px;
+    }
+ 
+    #legend {
+      position: absolute;
+      bottom: 36px;
+      left: 20px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: white;
+      min-width: 185px;
+    }
+    #legend h3 {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      margin-bottom: 0;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    #legend h3:hover { opacity: 0.8; }
+    #legend-chevron {
+      font-size: 9px;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    #legend.collapsed #legend-chevron { transform: rotate(-90deg); }
+    #legend-body {
+      overflow: hidden;
+      max-height: 700px;
+      transition: max-height 0.28s ease, margin-top 0.28s ease;
+      margin-top: 8px;
+    }
+    #legend.collapsed #legend-body {
+      max-height: 0;
+      margin-top: 0;
+    }
+    .legend-section {
+      font-size: 9px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    .legend-section.red { color: #ff6b6b; }
+    .legend-section.gold { color: #f5c518; }
+    .legend-section.blue { color: #4fc3f7; }
+    .legend-section.orange { color: #ff9a3c; }
+    .legend-section.green { color: #4ade80; }
+    .legend-section.grey { color: #a0aec0; }
+    .legend-section.maroon { color: #e07b7b; }
+    .legend-section.teal { color: #4fd1c5; }
+    .legend-commuter-label {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-top: 8px;
+      margin-bottom: 3px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 7px;
+    }
+    .legend-section.green { color: #4ade80; }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+      font-size: 10px;
+      color: #cbd5e1;
+    }
+    .legend-line-red {
+      width: 22px;
+      height: 3px;
+      background: #ff6b6b;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #dc2626;
+      flex-shrink: 0;
+    }
+    .legend-line-gold {
+      width: 22px;
+      height: 3px;
+      background: #f5c518;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #b8860b;
+      flex-shrink: 0;
+    }
+    .legend-line-blue {
+      width: 22px;
+      height: 3px;
+      background: #4fc3f7;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #0288d1;
+      flex-shrink: 0;
+    }
+    .legend-line-orange {
+      width: 22px;
+      height: 3px;
+      background: #ff9a3c;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #e65100;
+      flex-shrink: 0;
+    }
+    .legend-line-green {
+      width: 22px;
+      height: 3px;
+      background: #4ade80;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #16a34a;
+      flex-shrink: 0;
+    }
+    .legend-dot-major {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #ff6b6b;
+      flex-shrink: 0;
+    }
+    .legend-dot-minor {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #ff6b6b;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-dot-streetcar {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #f5c518;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-dot-blue {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #4fc3f7;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-line-orange {
+      width: 22px;
+      height: 3px;
+      background: #ff9a3c;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #e65100;
+      flex-shrink: 0;
+    }
+    .legend-line-green {
+      width: 22px;
+      height: 3px;
+      background: #4ade80;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #16a34a;
+      flex-shrink: 0;
+    }
+    .legend-line-grey {
+      width: 22px;
+      height: 3px;
+      background: #a0aec0;
+      border-radius: 2px;
+      box-shadow: 0 0 6px #4a5568;
+      flex-shrink: 0;
+    }
+    .legend-dot-orange {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #ff9a3c;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-dot-green {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #4ade80;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-dot-grey {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: white; border: 2px solid #a0aec0;
+      flex-shrink: 0; margin-left: 2px;
+    }
+    .legend-line-maroon {
+      width: 22px; height: 3px; background: #e07b7b;
+      border-radius: 2px; box-shadow: 0 0 6px #7b2d2d; flex-shrink: 0;
+    }
+    .legend-dot-maroon {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: white; border: 2px solid #e07b7b;
+      flex-shrink: 0; margin-left: 2px;
+    }
+    .legend-line-teal {
+      width: 22px; height: 3px; background: #4fd1c5;
+      border-radius: 2px; box-shadow: 0 0 6px #1a7a72; flex-shrink: 0;
+    }
+    .legend-dot-teal {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: white; border: 2px solid #4fd1c5;
+      flex-shrink: 0; margin-left: 2px;
+    }
+    .legend-stats {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 1px;
+      margin-bottom: 3px;
+      letter-spacing: 0.5px;
+    }
+    .legend-dot-green {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #4ade80;
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .legend-isochrone-red {
+      width: 28px;
+      height: 16px;
+      border-radius: 3px;
+      background: rgba(255, 107, 107, 0.18);
+      border: 2px dashed rgba(255, 107, 107, 0.8);
+      flex-shrink: 0;
+    }
+
+    .mapboxgl-popup-content {
+      background: rgba(10, 18, 35, 0.95) !important;
+      border-radius: 6px !important;
+      color: white !important;
+      padding: 10px 14px !important;
+      font-family: Arial, sans-serif !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.5px !important;
+    }
+    .mapboxgl-popup-content.red-popup {
+      border: 1px solid rgba(255, 107, 107, 0.4) !important;
+    }
+    .mapboxgl-popup-content.gold-popup {
+      border: 1px solid rgba(245, 197, 24, 0.4) !important;
+    }
+    .mapboxgl-popup-content.blue-popup {
+      border: 1px solid rgba(79, 195, 247, 0.4) !important;
+    }
+    .mapboxgl-popup-content.orange-popup {
+      border: 1px solid rgba(255, 154, 60, 0.4) !important;
+    }
+    .mapboxgl-popup-content.green-popup {
+      border: 1px solid rgba(74, 222, 128, 0.4) !important;
+    }
+    .mapboxgl-popup-content.grey-popup {
+      border: 1px solid rgba(160, 174, 192, 0.4) !important;
+    }
+    .mapboxgl-popup-content.green-popup {
+      border: 1px solid rgba(74, 222, 128, 0.4) !important;
+    }
+    .mapboxgl-popup-close-button {
+      color: #94a3b8 !important;
+      font-size: 16px !important;
+    }
+    .popup-major { color: #ff6b6b !important; font-size: 14px !important; }
+    .popup-streetcar { color: #f5c518 !important; }
+    .popup-blue { color: #4fc3f7 !important; }
+    .popup-blue { color: #4fc3f7 !important; }
+    .popup-green { color: #4ade80 !important; }
+    .popup-grey { color: #a0aec0 !important; }
+    .popup-green { color: #4ade80 !important; }
+    .popup-maroon { color: #e07b7b !important; }
+    .popup-teal { color: #4fd1c5 !important; }
+    .mapboxgl-popup-content.maroon-popup { border: 1px solid rgba(224,123,123,0.4) !important; }
+    .mapboxgl-popup-content.teal-popup { border: 1px solid rgba(79,209,197,0.4) !important; }
+    .popup-walk-note {
+      font-size: 10px !important;
+      color: #94a3b8 !important;
+      font-weight: 400 !important;
+      margin-top: 4px !important;
+      letter-spacing: 0.3px !important;
+    }
+
+    #pop-toggle {
+      position: absolute;
+      top: 20px;
+      right: 56px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #ff6b6b;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    #pop-toggle:hover { background: rgba(255,107,107,0.12); }
+
+    #layer-toggle {
+      position: absolute;
+      top: 60px;
+      right: 56px;
+      background: rgba(10, 18, 35, 0.88);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #94a3b8;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #layer-toggle:hover { background: rgba(255,107,107,0.12); }
+    #layer-toggle.active { color: #ff6b6b; border-color: rgba(255,107,107,0.7); }
+    .toggle-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #475569; flex-shrink: 0;
+    }
+    #layer-toggle.active .toggle-dot { background: #ff6b6b; }
+
+    #zoning-legend {
+      position: absolute;
+      bottom: 36px;
+      right: 20px;
+      background: rgba(10, 18, 35, 0.92);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      display: none;
+      min-width: 220px;
+      max-height: 25vh;
+      overflow-y: auto;
+    }
+    #zoning-legend h4 {
+      font-size: 10px; letter-spacing: 2px; color: #ff6b6b;
+      text-transform: uppercase; margin-bottom: 10px; font-weight: 700;
+    }
+    .zl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; color: #cbd5e1; }
+    .zl-swatch { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; opacity: 0.8; }
+
+    #pop-panel {
+      position: absolute;
+      top: 64px;
+      right: 20px;
+      width: 360px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: rgba(10, 18, 35, 0.95);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: none;
+    }
+    #pop-panel h3 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #ff6b6b;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .pop-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .pop-metric {
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 10px 8px;
+    }
+    .pop-metric-label {
+      font-size: 10px;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .pop-metric-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    #pop-status {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      min-height: 16px;
+    }
+    #pop-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+    #pop-table thead tr {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    #pop-table th {
+      color: #94a3b8;
+      font-weight: 600;
+      padding: 5px 4px;
+      text-align: left;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    #pop-table th:not(:first-child) { text-align: right; }
+    #pop-table td { padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; }
+    #pop-table td:not(:first-child) { text-align: right; }
+    #pop-table tr:last-child td { border-bottom: none; }
+    .pop-source {
+      font-size: 10px;
+      color: #475569;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* Isochrone loading indicator */
+    #iso-toast {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 35, 0.92);
+      border: 1px solid rgba(255, 107, 107, 0.4);
+      border-radius: 6px;
+      padding: 7px 16px;
+      color: #94a3b8;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      pointer-events: none;
+      display: none;
+      font-family: Arial, sans-serif;
+    }
+    /* ── PHASE TIMELINE ── */
+    #phase-bar {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: rgba(10,18,35,0.92);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 18px;
+      z-index: 10;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .phase-item {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .phase-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .phase-btn:hover { background: rgba(255,255,255,0.07); }
+    .phase-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      transition: all 0.25s;
+      font-family: 'DIN Offc Pro Medium', Arial, sans-serif;
+    }
+    .phase-label {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      transition: color 0.25s;
+      white-space: nowrap;
+    }
+    .phase-connector {
+      width: 32px;
+      height: 2px;
+      background: rgba(255,255,255,0.1);
+      margin: 0 2px;
+      margin-bottom: 14px;
+      transition: background 0.25s;
+    }
+    /* Active states */
+    .phase-btn.active .phase-dot {
+      background: #ff6b6b;
+      border-color: #ff6b6b;
+      color: white;
+      box-shadow: 0 0 12px #ff6b6b88;
+    }
+    .phase-btn.active .phase-label { color: #ff6b6b; }
+    .phase-btn[data-phase="2"].active .phase-dot {
+      background: #4fc3f7; border-color: #4fc3f7;
+      box-shadow: 0 0 12px #4fc3f788;
+    }
+    .phase-btn[data-phase="2"].active .phase-label { color: #4fc3f7; }
+    .phase-btn[data-phase="3"].active .phase-dot {
+      background: #4ade80; border-color: #4ade80;
+      box-shadow: 0 0 12px #4ade8088;
+    }
+    .phase-btn[data-phase="3"].active .phase-label { color: #4ade80; }
+    .phase-btn[data-phase="4"].active .phase-dot {
+      background: #4fd1c5; border-color: #4fd1c5;
+      box-shadow: 0 0 12px #4fd1c588;
+    }
+    .phase-btn[data-phase="4"].active .phase-label { color: #4fd1c5; }
+    /* Completed connector */
+    .phase-connector.done { background: rgba(255,255,255,0.35); }
+    /* Cumulative glow on completed dots */
+    .phase-btn.done .phase-dot {
+      border-color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+ 
+<div id="phase-bar">
+  <div class="phase-item">
+    <button class="phase-btn" data-phase="1" onclick="setPhase(1)">
+      <div class="phase-dot">1</div>
+      <span class="phase-label">Phase 1</span>
+    </button>
+  </div>
+  <div class="phase-connector" id="conn-1"></div>
+  <div class="phase-item">
+    <button class="phase-btn" data-phase="2" onclick="setPhase(2)">
+      <div class="phase-dot">2</div>
+      <span class="phase-label">Phase 2</span>
+    </button>
+  </div>
+  <div class="phase-connector" id="conn-2"></div>
+  <div class="phase-item">
+    <button class="phase-btn" data-phase="3" onclick="setPhase(3)">
+      <div class="phase-dot">3</div>
+      <span class="phase-label">Phase 3</span>
+    </button>
+  </div>
+  <div class="phase-connector" id="conn-3"></div>
+  <div class="phase-item">
+    <button class="phase-btn" data-phase="4" onclick="setPhase(4)">
+      <div class="phase-dot">4</div>
+      <span class="phase-label">Phase 4</span>
+    </button>
+  </div>
+</div>
+
+<div id="map"></div>
+ 
+<div id="title">
+  <h1>Tampa Transit Master Plan</h1>
+  <p>Proposed Transit Corridors — Tampa, FL</p>
+</div>
+ 
+<div id="legend">
+  <h3 onclick="document.getElementById('legend').classList.toggle('collapsed')">
+    Legend <span id="legend-chevron">▼</span>
+  </h3>
+  <div id="legend-body">
+
+    <div class="legend-section red">CSX Spur Line <span style="font-size:9px;opacity:0.5;">· Ph 1</span></div>
+    <div class="legend-stats">11.6 mi &nbsp;·&nbsp; 16 stops</div>
+    <div class="legend-row"><div class="legend-line-red"></div>Proposed rail line</div>
+    <div class="legend-row"><div class="legend-dot-major"></div>Major station</div>
+
+    <div class="legend-section gold" style="margin-top:10px;">Streetcar Extension <span style="font-size:9px;opacity:0.5;">· Ph 1</span></div>
+    <div class="legend-stats">~5.0 mi &nbsp;·&nbsp; 18 stops</div>
+    <div class="legend-row"><div class="legend-line-gold"></div>Streetcar route</div>
+
+    <div class="legend-section blue" style="margin-top:10px;">Airport + Cyprus Line <span style="font-size:9px;opacity:0.5;">· Ph 2</span></div>
+    <div class="legend-stats">6.6 mi combined &nbsp;·&nbsp; 10 stops</div>
+    <div class="legend-row"><div class="legend-line-blue"></div>Proposed rail line</div>
+
+    <div class="legend-section green" style="margin-top:10px;">USF Line <span style="font-size:9px;opacity:0.5;">· Ph 3</span></div>
+    <div class="legend-stats">12.5 mi &nbsp;·&nbsp; 14 stops</div>
+    <div class="legend-row"><div class="legend-line-green"></div>Proposed rail line</div>
+
+    <div class="legend-section grey" style="margin-top:10px;">Grey Line <span style="font-size:9px;opacity:0.5;">· Ph 3</span></div>
+    <div class="legend-stats">1.6 mi &nbsp;·&nbsp; 1 stop</div>
+    <div class="legend-row"><div class="legend-line-grey"></div>Proposed rail line</div>
+
+    <div class="legend-commuter-label">— Commuter Rail · Ph 4 —</div>
+
+    <div class="legend-section teal">Plant City Line</div>
+    <div class="legend-stats">18.3 mi &nbsp;·&nbsp; 2 stops</div>
+    <div class="legend-row"><div class="legend-line-teal"></div>Commuter rail corridor</div>
+
+    <div class="legend-section teal" style="margin-top:10px;">Sun City Line</div>
+    <div class="legend-stats">19.8 mi &nbsp;·&nbsp; 3 stops</div>
+    <div class="legend-row"><div class="legend-line-teal"></div>Commuter rail corridor</div>
+
+    <div class="legend-section red" style="margin-top:12px;">Catchment Sheds</div>
+    <div class="legend-row"><div class="legend-isochrone-red"></div>10-min walk shed (rapid transit)</div>
+    <div class="legend-row"><div class="legend-isochrone-red" style="border-color:#a0aec0;"></div>15-min drive shed (commuter rail)</div>
+
+  </div>
+</div>
+
+<div id="iso-toast">Loading walk zone...</div>
+
+<button id="pop-toggle" onclick="togglePanel()">&#9776; Population Data</button>
+
+<button id="layer-toggle" onclick="toggleZoning()">
+  <span class="toggle-dot"></span> Tampa Zoning
+</button>
+
+<div id="zoning-legend">
+  <h4>City of Tampa Zoning</h4>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:6px 0 4px;">Residential</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,236,225)"></div> RS-150 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,217,196)"></div> RS-100 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,198,166)"></div> RS-75 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,179,137)"></div> RS-60 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(228,141,91)"></div> RS-50 Single Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(223,190,155)"></div> R-3MH Mobile Home</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(199,168,136)"></div> RM-12 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(175,147,117)"></div> RM-16 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(152,126,98)"></div> RM-18 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(128,107,79)"></div> RM-24 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(105,83,61)"></div> RM-35 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(81,62,42)"></div> RM-50 Multi Family</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(46,30,14)"></div> RM-75 Multi Family</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,198,198)"></div> CN Neighborhood Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,113,113)"></div> CG General Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(255,0,0)"></div> CI Intensive Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(227,204,180)"></div> CD-1 Commercial District 1</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(199,153,135)"></div> CD-2 Commercial District 2</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(191,102,90)"></div> CD-3 Commercial District 3</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(143,51,45)"></div> CBD-1 Central Business</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(115,0,0)"></div> CBD-2 Central Business</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(24,80,142)"></div> UC Urban Commercial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(207,185,0)"></div> CU Commercial Urban</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(219,202,63)"></div> CC Community Commercial</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Office / Professional</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(164,195,196)"></div> RO Residential Office</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(119,165,167)"></div> RO-1 Residential Office</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(73,135,138)"></div> OP Office/Professional</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(6,90,95)"></div> OP-1 Office/Professional</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Planned Development</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(243,237,191)"></div> PD Planned Development</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(231,220,127)"></div> PD-A Planned Development Alt.</div>
+
+  <div style="font-size:10px;color:#f5c518;letter-spacing:1px;text-transform:uppercase;margin:8px 0 4px;">Industrial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(156,156,156)"></div> IG General Industrial</div>
+  <div class="zl-row"><div class="zl-swatch" style="background:rgb(78,78,78)"></div> IH Heavy Industrial</div>
+
+  <div style="margin-top:10px;font-size:10px;color:#475569;">Source: City of Tampa GIS (arcgis.tampagov.net)</div>
+</div>
+
+<div id="pop-panel" style="display:none;">
+  <h3>All Lines — Population within 1 Mile</h3>
+  <div class="pop-metrics">
+    <div class="pop-metric">
+      <div class="pop-metric-label">Total pop.</div>
+      <div class="pop-metric-value" id="pm-pop">—</div>
+    </div>
+    <div class="pop-metric">
+      <div class="pop-metric-label">Tracts</div>
+      <div class="pop-metric-value" id="pm-tracts">—</div>
+    </div>
+    <div class="pop-metric">
+      <div class="pop-metric-label">Block groups</div>
+      <div class="pop-metric-value" id="pm-income">—</div>
+    </div>
+  </div>
+  <div id="pop-status">Loading census data...</div>
+  <table id="pop-table">
+    <thead>
+      <tr>
+        <th>Station</th>
+        <th>Pop. within 1mi</th>
+        <th colspan="2">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="pop-tbody"></tbody>
+  </table>
+  <div class="pop-source">Source: U.S. Census Bureau, 2023 ACS 5-Year Estimates (B01003, B19013). Tracts identified from red line station coordinates.</div>
+</div>
+
+<script>
+  let currentPhase = 0;
+
+  // Phase definitions — which layer groups are visible per phase (cumulative)
+  const PHASE_LAYERS = {
+    1: ['transit-line','streetcar-line','streetcar-stations','stations'],
+    2: ['airport-line','cyprus-line','airport-stops','cyprus-stops'],
+    3: ['usf-line','usf-stops','grey-line','grey-stops'],
+    4: ['plantcity-line','plantcity-stops','suncity-line','suncity-stops']
+  };
+
+  function setPhase(phase) {
+    if (!mapLoaded) return;
+
+    // Determine which sources/layers should now be visible (cumulative up to this phase)
+    // and which should be hidden
+    for (let p = 1; p <= 4; p++) {
+      const visible = p <= phase;
+      const sources = PHASE_LAYERS[p];
+      sources.forEach(sourceId => {
+        // Each source has multiple associated layers — toggle by source prefix
+        const layerPrefixes = getLayerPrefixes(sourceId);
+        layerPrefixes.forEach(layerId => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+          }
+        });
+      });
+    }
+
+    currentPhase = phase;
+
+    // Update button states
+    document.querySelectorAll('.phase-btn').forEach(btn => {
+      const p = parseInt(btn.dataset.phase);
+      btn.classList.remove('active', 'done');
+      if (p === phase) btn.classList.add('active');
+      else if (p < phase) btn.classList.add('done');
+    });
+
+    // Update connectors
+    for (let i = 1; i <= 3; i++) {
+      const conn = document.getElementById('conn-' + i);
+      if (conn) conn.classList.toggle('done', i < phase);
+    }
+  }
+
+  function getLayerPrefixes(sourceId) {
+    // Map source IDs to their associated layer IDs
+    const layerMap = {
+      'transit-line':      ['line-glow-outer','line-glow-inner','line-core'],
+      'streetcar-line':    ['streetcar-glow-outer','streetcar-glow-inner','streetcar-core'],
+      'streetcar-stations':['streetcar-station-bg','streetcar-station-dot','streetcar-labels'],
+      'stations':          ['station-glow','station-bg','station-dot','station-labels'],
+      'airport-line':      ['airport-glow-outer','airport-glow-inner','airport-core'],
+      'cyprus-line':       ['cyprus-glow-outer','cyprus-glow-inner','cyprus-core'],
+      'airport-stops':     ['airport-stop-bg','airport-stop-dot','airport-labels'],
+      'cyprus-stops':      ['cyprus-stop-bg','cyprus-stop-dot','cyprus-labels'],
+      'usf-line':          ['usf-glow-outer','usf-glow-inner','usf-core'],
+      'grey-line':         ['grey-glow-outer','grey-glow-inner','grey-core'],
+      'usf-stops':         ['usf-stop-glow','usf-stop-bg','usf-stop-dot','usf-labels'],
+      'grey-stops':        ['grey-stop-glow','grey-stop-bg','grey-stop-dot','grey-labels'],
+      'plantcity-line':    ['plantcity-glow-outer','plantcity-glow-inner','plantcity-core'],
+      'suncity-line':      ['suncity-glow-outer','suncity-glow-inner','suncity-core'],
+      'plantcity-stops':   ['plantcity-stop-glow','plantcity-stop-bg','plantcity-stop-dot','plantcity-labels'],
+      'suncity-stops':     ['suncity-stop-glow','suncity-stop-bg','suncity-stop-dot','suncity-labels'],
+    };
+    return layerMap[sourceId] || [];
+  }
+
+  let mapLoaded = false;
+
+  function togglePanel() {
+    const p = document.getElementById('pop-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function setPopStatus(msg) { document.getElementById('pop-status').textContent = msg; }
+
+  const redStations = [
+    {name:"Columbia / Ybor City", coords:[-82.43511843346539,27.959562174343674]},
+    {name:"Gas Works",            coords:[-82.44522617795658,27.958722929662954]},
+    {name:"Union Station",        coords:[-82.45105295822454,27.953164442037036]},
+    {name:"Downtown",             coords:[-82.45920756080478,27.95065553227566]},
+    {name:"University of Tampa",  coords:[-82.46696910523626,27.9501788689777]},
+    {name:"Kennedy",              coords:[-82.47342082538196,27.94373050481306]},
+    {name:"Hyde Park",            coords:[-82.47881548369719,27.937442686839688]},
+    {name:"SoHo",                 coords:[-82.48306464788192,27.932505297611115]},
+    {name:"W Mississippi",        coords:[-82.48651142180134,27.928657091497996]},
+    {name:"Palma Ceia",           coords:[-82.49320612225347,27.919730433162712]},
+    {name:"El Prado",             coords:[-82.49833878544452,27.911693593428723]},
+    {name:"Intersect",            coords:[-82.515917230013,  27.883978015170868]},
+    {name:"Monroe",               coords:[-82.51975605498008,27.877974229034493]},
+    {name:"Rattlesnake",          coords:[-82.52650390762274,27.886556835133476]},
+    {name:"Port Tampa City",      coords:[-82.5266408189072, 27.866975059939435]},
+    {name:"Tyson",                coords:[-82.53509308467015,27.886863743989124]}
+  ];
+
+  const airportStations = [
+    {name:"Main Terminal",   coords:[-82.53335225160579,27.97997694864536]},
+    {name:"Economy Parking", coords:[-82.5355917014165, 27.966932917223772]},
+    {name:"Car Rental",      coords:[-82.53557289024336,27.963659835916644]},
+    {name:"Westshore Stop",  coords:[-82.52824334838022,27.952400222527928]}
+  ];
+
+  const cyprusStations = [
+    {name:"Julian B Lane",   coords:[-82.46958347365761,27.9520318788652]},
+    {name:"N Rome",          coords:[-82.47758432869897,27.952092859745193]},
+    {name:"Armenia",         coords:[-82.48578484626368,27.952127757368416]},
+    {name:"North Mac Dill",  coords:[-82.49401896303505,27.952139358366907]},
+    {name:"MidTown",         coords:[-82.50335431544072,27.95229360348725]},
+    {name:"Transit Center",  coords:[-82.52029083191181,27.95228665538805]}
+  ];
+
+  const usfStations = [
+    {name:"Columbus",         coords:[-82.42647081261823,27.966787835920158]},
+    {name:"E 26th",           coords:[-82.42642937549276,27.97410988332136]},
+    {name:"Middleton",        coords:[-82.4289885371122, 27.988708420937726]},
+    {name:"Waters",           coords:[-82.43765601116054,28.025253170405435]},
+    {name:"Bougainvillea",    coords:[-82.44744256350481,28.043629002996042]},
+    {name:"Shaw",             coords:[-82.44286288999719,28.052924887483556]},
+    {name:"22nd St",          coords:[-82.43460397058682,28.052863588087092]},
+    {name:"DOT",              coords:[-82.41620706773574,28.05259122446546]},
+    {name:"Moffitt",          coords:[-82.42600689120759,28.064115117929575]},
+    {name:"USF",              coords:[-82.40870449072834,28.05999336056759]},
+    {name:"USF Village",      coords:[-82.40802978554083,28.066484025419825]},
+    {name:"Fletcher District",coords:[-82.40911612566572,28.069308943417397]},
+    {name:"42nd",             coords:[-82.41503720117808,28.069268918142114]},
+    {name:"Advent Health",    coords:[-82.42289866578243,28.069310395816345]}
+  ];
+
+  const greyStations = [
+    {name:"Sports District", coords:[-82.50544640170844,27.975976478273978]}
+  ];
+
+  const plantCityStations = [
+    {name:"Brandon",    coords:[-82.28643306482742,27.944429175270642]},
+    {name:"Plant City", coords:[-82.12411535033416,28.01345375349139]}
+  ];
+
+  const sunCityStations = [
+    {name:"Gibsonton",       coords:[-82.3811553753311,27.848399031812136]},
+    {name:"Apollo Beach",    coords:[-82.39204423727372,27.767967385041587]},
+    {name:"Ruskin / Sun City",coords:[-82.42648837220348,27.712590149259455]}
+  ];
+
+  function distMiles(lat1, lon1, lat2, lon2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  async function fetchAllBlockGroups() {
+    const url = `https://api.census.gov/data/2023/acs/acs5?get=B01003_001E,NAME&for=block%20group:*&in=state:12+county:057`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Census API error: ${r.status}`);
+    const rows = await r.json();
+    const headers = rows[0];
+    const popIdx = headers.indexOf('B01003_001E');
+    const stateIdx = headers.indexOf('state');
+    const countyIdx = headers.indexOf('county');
+    const tractIdx = headers.indexOf('tract');
+    const bgIdx = headers.indexOf('block group');
+    return rows.slice(1).map(row => ({
+      pop: parseInt(row[popIdx]) || 0,
+      state: row[stateIdx],
+      county: row[countyIdx],
+      tract: row[tractIdx],
+      bg: row[bgIdx]
+    }));
+  }
+
+  async function getBGCentroid(state, county, tract, bg) {
+    const geoid = `${state}${county}${tract}${bg}`;
+    const url = `https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/10/query?where=GEOID='${geoid}'&outFields=CENTLAT,CENTLON&f=json`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d.features && d.features.length > 0) {
+      const a = d.features[0].attributes;
+      return { lat: parseFloat(a.CENTLAT), lon: parseFloat(a.CENTLON) };
+    }
+    return null;
+  }
+
+  async function loadPopData() {
+    setPopStatus('Loading block group data from Census...');
+    let allBGs;
+    try {
+      allBGs = await fetchAllBlockGroups();
+    } catch(e) {
+      setPopStatus('Error loading Census data: ' + e.message);
+      return;
+    }
+
+    setPopStatus(`Loaded ${allBGs.length} block groups. Calculating centroids... (this takes ~30 sec)`);
+
+    const withCentroids = [];
+    let done = 0;
+    const batchSize = 10;
+    for (let i = 0; i < allBGs.length; i += batchSize) {
+      const batch = allBGs.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(async bg => {
+        try {
+          const c = await getBGCentroid(bg.state, bg.county, bg.tract, bg.bg);
+          return c ? { ...bg, lat: c.lat, lon: c.lon } : null;
+        } catch(e) { return null; }
+      }));
+      results.forEach(r => { if (r) withCentroids.push(r); });
+      done += batch.length;
+      setPopStatus(`Calculating centroids... ${Math.min(done, allBGs.length)} / ${allBGs.length}`);
+    }
+
+    setPopStatus('Computing population catchment for each station...');
+
+    const commuterLines = new Set(['plantcity', 'suncity']);
+
+    const allStations = [
+      ...redStations.map(s => ({...s, line: 'red'})),
+      ...airportStations.map(s => ({...s, line: 'airport'})),
+      ...cyprusStations.map(s => ({...s, line: 'cyprus'})),
+      ...usfStations.map(s => ({...s, line: 'usf'})),
+      ...greyStations.map(s => ({...s, line: 'grey'})),
+      ...plantCityStations.map(s => ({...s, line: 'plantcity'})),
+      ...sunCityStations.map(s => ({...s, line: 'suncity'}))
+    ];
+
+    const rows = [];
+    let corridorBGs = new Set();
+    for (const s of allStations) {
+      const radius = commuterLines.has(s.line) ? 5.0 : 1.0;
+      let stationPop = 0;
+      for (const bg of withCentroids) {
+        const d = distMiles(s.coords[1], s.coords[0], bg.lat, bg.lon);
+        if (d <= radius) {
+          stationPop += bg.pop;
+          corridorBGs.add(`${bg.state}${bg.county}${bg.tract}${bg.bg}`);
+        }
+      }
+      rows.push({ name: s.name, pop: stationPop, line: s.line, radius });
+    }
+
+    let totalPop = 0;
+    for (const bg of withCentroids) {
+      const key = `${bg.state}${bg.county}${bg.tract}${bg.bg}`;
+      if (corridorBGs.has(key)) totalPop += bg.pop;
+    }
+
+    document.getElementById('pm-pop').textContent = totalPop.toLocaleString();
+    document.getElementById('pm-tracts').textContent = corridorBGs.size + ' BGs';
+    document.getElementById('pm-income').textContent = '2023 ACS';
+
+    const tbody = document.getElementById('pop-tbody');
+    tbody.innerHTML = '';
+    const lineColors = { red: '#ff6b6b', airport: '#4fc3f7', cyprus: '#4fc3f7', usf: '#4ade80', grey: '#a0aec0', plantcity: '#e07b7b', suncity: '#4fd1c5' };
+    const lineLabels = { red: 'Red', airport: 'Airport', cyprus: 'Cyprus', usf: 'USF', grey: 'Grey', plantcity: 'Plant City', suncity: 'Sun City' };
+    rows.forEach(r => {
+      const color = lineColors[r.line] || '#ffffff';
+      const radiusLabel = r.radius === 5.0 ? 'within 5 mi' : 'within 1 mi';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-size:11px;"><span style="color:${color};font-weight:700;">[${lineLabels[r.line]}]</span> ${r.name}</td><td>${r.pop.toLocaleString()}</td><td colspan="2" style="color:#94a3b8;font-size:10px;">${radiusLabel}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    setPopStatus(`Complete — rapid transit: 1-mi radius · commuter rail: 5-mi radius. 2023 ACS 5-Year.`);
+  }
+
+  window.addEventListener('load', loadPopData);
+</script>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<script>
+  // -------------------------------------------------------
+  // MAPBOX TOKEN
+  // -------------------------------------------------------
+  mapboxgl.accessToken = 'pk.eyJ1IjoidGFsdmFyZXpqciIsImEiOiJjbW9reW40MHYwY2N0MnFuY2FhbWpzMmQ0In0.tW_wPe5mbI-ZnmrYib1IfA';
+
+  // -------------------------------------------------------
+  // OPENROUTESERVICE API KEY
+  // Get a free key at openrouteservice.org — 2,000 req/day free
+  // -------------------------------------------------------
+  const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijk3ZjdkYjhiNzc3ZDQ5NDBhYWY3NDJmMTE1NWU1OTMxIiwiaCI6Im11cm11cjY0In0=';
+
+  // -------------------------------------------------------
+  // ISOCHRONE: fetch 10-min walk shed from ORS and display
+  // lineColor: 'red' | 'gold'
+  // -------------------------------------------------------
+  async function showWalkIsochrone(lngLat, stationName, lineColor) {
+    const toast = document.getElementById('iso-toast');
+    toast.style.display = 'block';
+
+    // Remove previous isochrone layers/source if they exist
+    ['isochrone-fill', 'isochrone-border'].forEach(id => {
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource('isochrone')) map.removeSource('isochrone');
+
+    const colorMap = { gold: '#f5c518', blue: '#4fc3f7', orange: '#ff9a3c', green: '#4ade80', grey: '#a0aec0', maroon: '#e07b7b', teal: '#4fd1c5' };
+    const color = colorMap[lineColor] || '#ff6b6b';
+
+    const commuterLines = new Set(['maroon', 'teal']);
+    const isCommuter = commuterLines.has(lineColor);
+    const orsProfile = isCommuter ? 'driving-car' : 'foot-walking';
+    const orsRange   = isCommuter ? 900 : 600;   // 15 min driving vs 10 min walking
+    toast.textContent = isCommuter ? 'Loading 15-min drive shed...' : 'Loading walk zone...';
+
+    try {
+      const res = await fetch(`https://api.openrouteservice.org/v2/isochrones/${orsProfile}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': ORS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          locations: [[lngLat.lng, lngLat.lat]],
+          range: [orsRange],
+          range_type: 'time',
+          smoothing: 0.8
+        })
+      });
+
+      if (!res.ok) {
+        console.error('ORS error:', res.status, await res.text());
+        toast.style.display = 'none';
+        return;
+      }
+
+      const geojson = await res.json();
+
+      map.addSource('isochrone', { type: 'geojson', data: geojson });
+
+      // Filled shed — inserted below transit lines so they stay on top
+      map.addLayer({
+        id: 'isochrone-fill',
+        type: 'fill',
+        source: 'isochrone',
+        paint: {
+          'fill-color': color,
+          'fill-opacity': 0.13
+        }
+      }, 'line-glow-outer');
+
+      // Dashed border
+      map.addLayer({
+        id: 'isochrone-border',
+        type: 'line',
+        source: 'isochrone',
+        paint: {
+          'line-color': color,
+          'line-width': 2,
+          'line-opacity': 0.75,
+          'line-dasharray': [3, 2]
+        }
+      }, 'line-glow-outer');
+
+    } catch (err) {
+      console.error('Failed to fetch isochrone:', err);
+    }
+
+    toast.textContent = 'Loading walk zone...';
+    toast.style.display = 'none';
+  }
+
+  // ── MAP DATA ──
+
+  const lineData = {
+    "type": "FeatureCollection",
+    "features": [{
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [[-82.42661712716196,27.959570024609604],[-82.42680286943397,27.959570024609604],[-82.426956668767,27.959570024609604],[-82.42710928502858,27.95957211457369],[-82.42731277337731,27.959568979627804],[-82.42757554896367,27.959567360956243],[-82.42836879714078,27.95957254611612],[-82.42981575470407,27.959570289768294],[-82.43159829973098,27.959571937810153],[-82.43255587825143,27.959567023821492],[-82.4330499410535,27.959568409202475],[-82.43458875612679,27.959573950330764],[-82.43552353971722,27.959572564358822],[-82.43622111933587,27.959570212902378],[-82.43711995563602,27.95957162524509],[-82.4382194293119,27.959571624994012],[-82.43993351381617,27.95956848250991],[-82.44118345769348,27.959573965248964],[-82.44190187201148,27.959573626385364],[-82.4422736338957,27.95956913128761],[-82.44248223818963,27.95954973594671],[-82.44287512779984,27.95951288699453],[-82.44313862796105,27.959472710906837],[-82.44354280331477,27.95939527853035],[-82.44363676473843,27.959367939244146],[-82.44393412501,27.959282992128408],[-82.44412094242914,27.959218549445055],[-82.44435052041699,27.959133937306916],[-82.44449254097069,27.959079968220834],[-82.4447622932415,27.958967126222788],[-82.44502031903193,27.958841995271115],[-82.4452877273889,27.95869565794692],[-82.44569365525214,27.958451059570592],[-82.44600898627684,27.958225932825314],[-82.44625346434758,27.9580331701042],[-82.44644419682344,27.95786963712625],[-82.44667985579495,27.957654884176392],[-82.44686804567291,27.957455495059648],[-82.44711915278583,27.957187396730006],[-82.44776536937104,27.956492493422544],[-82.44820623677107,27.956014082873324],[-82.4486925873234,27.95549233548428],[-82.44913068755926,27.955018653033406],[-82.44944132982754,27.954688171940887],[-82.44964744055675,27.954461816003516],[-82.44992897337444,27.954159309372784],[-82.4503232692128,27.953748014771975],[-82.45042243136295,27.9536525356107],[-82.45056900693528,27.953524581067455],[-82.45079987192072,27.95334180183083],[-82.4509137683692,27.953257605182984],[-82.4512520910974,27.953052803787486],[-82.45151596631722,27.952918775385754],[-82.45167255725401,27.952851026009398],[-82.45184601647829,27.952780660515216],[-82.45200592128006,27.95272164278012],[-82.45235953049072,27.95261606057028],[-82.45267390083583,27.952547137973156],[-82.45303127808646,27.952487737810984],[-82.45367077530929,27.952388026374763],[-82.45438488629776,27.952274226121688],[-82.45470539058303,27.95221908290638],[-82.45488240627316,27.95217307924632],[-82.45493008573881,27.952156718489462],[-82.45581358281797,27.9518459955666],[-82.45596019943422,27.95180254644417],[-82.45680863505933,27.951517869721258],[-82.45772230678193,27.951201027942247],[-82.45833654066494,27.950970722136177],[-82.45922327107705,27.9506757813991],[-82.45945700995232,27.950597197442306],[-82.46021683204731,27.950342085225785],[-82.46084294538623,27.950137591897516],[-82.46117286453672,27.95006718804862],[-82.46140058328749,27.95003328006659],[-82.46156472513456,27.9500079146178],[-82.46297038616927,27.949894332898822],[-82.46331059775912,27.9499149401136],[-82.46386810984362,27.949938873069314],[-82.46398953531859,27.94994914525948],[-82.46520475797125,27.94999189044283],[-82.46560142255214,27.95004182402917],[-82.46656200447725,27.950107127362884],[-82.46724325568844,27.950137389128187],[-82.46776241270824,27.950065431074307],[-82.46799374314307,27.949972802595482],[-82.46820255330091,27.94989278240378],[-82.46861390704882,27.949690053821612],[-82.46894727513217,27.949390392666004],[-82.46963810441201,27.948674105851495],[-82.46982039793525,27.948462504961824],[-82.47016325040389,27.947986535480908],[-82.47060779204489,27.947437871521558],[-82.47149074492054,27.946291617203713],[-82.47204531994522,27.945518747374734],[-82.47237940504564,27.945033679576753],[-82.47258408908674,27.94475289595819],[-82.47282771475821,27.94450755896274],[-82.4731940022158,27.944003019842967],[-82.4737099585666,27.943342396367242],[-82.47472092888776,27.94224253261136],[-82.47534835267471,27.941595235997298],[-82.4765354118807,27.940144296863693],[-82.47777218969536,27.9386512462535],[-82.47840538968528,27.93785869379502],[-82.47908336620347,27.937028281569567],[-82.48003638589768,27.93595075488446],[-82.48080689579182,27.93506326983814],[-82.4817963170639,27.93398056470481],[-82.48284524856383,27.93275288265889],[-82.48396846924295,27.93146531336329],[-82.48541472265441,27.929852252559627],[-82.48666593304594,27.9284667712336],[-82.48782574644159,27.927171303819947],[-82.4890330462657,27.925804572609835],[-82.489613962846,27.92510159837451],[-82.49002186105108,27.924503298926965],[-82.49085260317017,27.923287937060195],[-82.49170549480948,27.921985508510375],[-82.49246825903802,27.920748315236224],[-82.49309205686984,27.91982540629448],[-82.49404869094707,27.918336527495484],[-82.49452022243648,27.917575290670385],[-82.49515592717064,27.916545611857217],[-82.49604678912469,27.915175912628314],[-82.49706761267439,27.91359319878289],[-82.49785853487957,27.91233163741255]],
+          [[-82.49785443179859,27.91233163741255],[-82.49819667542015,27.91184821397482],[-82.49835937620797,27.91161881940218],[-82.50055935718767,27.908210657497108],[-82.5014229971514,27.90679142401858],[-82.50238808886,27.90531882092445],[-82.50313213244404,27.904318200946136],[-82.5050491136566,27.900651517654893],[-82.5054964700467,27.900102819773153],[-82.50654506352714,27.898545128317053],[-82.50742883871202,27.897175618089292],[-82.51018160007689,27.892814749781806],[-82.51173769770963,27.89032771858787],[-82.51227698232131,27.88943144139823],[-82.51418652666733,27.88648534296179],[-82.51649502990844,27.883149954652396],[-82.51742002760022,27.881666440302013],[-82.51981977975123,27.877839958321275],[-82.52185472374195,27.874366076008798],[-82.52533978596094,27.86887857582822],[-82.52748717774459,27.865720084035615],[-82.52873219441211,27.864087241222293],[-82.5297690746749,27.863574704773626],[-82.53107814353918,27.86315552021611],[-82.53207041432492,27.86296674374327],[-82.53266063054924,27.862887417377408],[-82.5334280837834,27.862788391113853],[-82.53633813218346,27.862725715190678],[-82.53852946815539,27.862884932465818],[-82.54124902766742,27.862914827707954],[-82.54213015737491,27.862954682016976],[-82.54249953637472,27.862954682016976],[-82.54292488189091,27.862954682016976],[-82.54336142070943,27.862954682016976],[-82.5437079951775,27.86289487825175],[-82.544971313885,27.862838878984576],[-82.5462777722525,27.862809098566316],[-82.54761348692429,27.8626108993666],[-82.54879059361238,27.862452760682658],[-82.55083656585073,27.86223186010396]],
+          [[-82.51548178037183,27.884621896622363],[-82.51548810746262,27.88485154592503]],
+          [[-82.51548808085036,27.88485794227053],[-82.51549438918131,27.885101696017486],[-82.51551556689205,27.885308014657113],[-82.5155737517532,27.88547636198267],[-82.5156691195724,27.88558678297366],[-82.51583107125477,27.885710521536083],[-82.51597866335761,27.8858019189106],[-82.51620785844888,27.885900054047482],[-82.51647450086203,27.885991842882476],[-82.51672669300642,27.886064095860135],[-82.51712793853231,27.886169400946514],[-82.51758181979078,27.88626174753263],[-82.51788690286006,27.88630138326498],[-82.51816272606568,27.886347669496843],[-82.51877248895269,27.886385116248135],[-82.51983195307203,27.88647718983202],[-82.52108426954231,27.886490358760696],[-82.52332306960818,27.88651753199788],[-82.52452337036871,27.88652411597299],[-82.52515685734772,27.886517527024623],[-82.52629771356696,27.88652411002515],[-82.52661651226163,27.88653727894807],[-82.52699532306659,27.886554540768216],[-82.52716619648072,27.886593994982974],[-82.52742785992467,27.886725762069148],[-82.52762935002613,27.886785184594004],[-82.52844608204992,27.886798400356938],[-82.53109759142035,27.886833120342843],[-82.53429354634258,27.886852724055203],[-82.53510598321935,27.88686579801093]]
+        ]
+      }
+    }]
+  };
+ 
+  const stationData = {
+    "type": "FeatureCollection",
+    "features": [
+      {"type":"Feature","properties":{"name":"Columbia / Ybor City","major":false},"geometry":{"type":"Point","coordinates":[-82.43511843346539,27.959562174343674]}},
+      {"type":"Feature","properties":{"name":"Gas Works","major":true},"geometry":{"type":"Point","coordinates":[-82.44522617795658,27.958722929662954]}},
+      {"type":"Feature","properties":{"name":"Union Station","major":true},"geometry":{"type":"Point","coordinates":[-82.45105295822454,27.953164442037036]}},
+      {"type":"Feature","properties":{"name":"Downtown","major":true},"geometry":{"type":"Point","coordinates":[-82.45920756080478,27.95065553227566]}},
+      {"type":"Feature","properties":{"name":"University of Tampa","major":false},"geometry":{"type":"Point","coordinates":[-82.46696910523626,27.9501788689777]}},
+      {"type":"Feature","properties":{"name":"Kennedy","major":false},"geometry":{"type":"Point","coordinates":[-82.47342082538196,27.94373050481306]}},
+      {"type":"Feature","properties":{"name":"Hyde Park","major":false},"geometry":{"type":"Point","coordinates":[-82.47881548369719,27.937442686839688]}},
+      {"type":"Feature","properties":{"name":"SoHo","major":false},"geometry":{"type":"Point","coordinates":[-82.48306464788192,27.932505297611115]}},
+      {"type":"Feature","properties":{"name":"W Mississippi","major":false},"geometry":{"type":"Point","coordinates":[-82.48651142180134,27.928657091497996]}},
+      {"type":"Feature","properties":{"name":"Palma Ceia","major":false},"geometry":{"type":"Point","coordinates":[-82.49320612225347,27.919730433162712]}},
+      {"type":"Feature","properties":{"name":"El Prado","major":false},"geometry":{"type":"Point","coordinates":[-82.49833878544452,27.911693593428723]}},
+      {"type":"Feature","properties":{"name":"Intersect","major":false},"geometry":{"type":"Point","coordinates":[-82.515917230013,27.883978015170868]}},
+      {"type":"Feature","properties":{"name":"Monroe","major":false},"geometry":{"type":"Point","coordinates":[-82.51975605498008,27.877974229034493]}},
+      {"type":"Feature","properties":{"name":"Rattlesnake","major":false},"geometry":{"type":"Point","coordinates":[-82.52650390762274,27.886556835133476]}},
+      {"type":"Feature","properties":{"name":"Port Tampa City","major":false},"geometry":{"type":"Point","coordinates":[-82.5266408189072,27.866975059939435]}},
+      {"type":"Feature","properties":{"name":"Tyson","major":false},"geometry":{"type":"Point","coordinates":[-82.53509308467015,27.886863743989124]}}
+    ]
+  };
+ 
+  const streetcarLine = {
+    "type": "FeatureCollection",
+    "features": [{
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-82.4372496597748,27.960999817523003],[-82.43836452084388,27.961010405908965],[-82.43988489900258,27.961022501304],[-82.44199223139378,27.96102514838374],[-82.44397600316655,27.961033919619837],[-82.44522889377922,27.96104091499869],[-82.44531332414596,27.961036708664423],[-82.44536567092894,27.96102395385884],[-82.44541079746551,27.96100003859479],[-82.44543065314181,27.960974528973438],[-82.44544870375665,27.960950613698387],[-82.44545592400256,27.96092032100806],[-82.44545953412504,27.96085335819066],[-82.44545953412504,27.96079596145617],[-82.44545953412504,27.96072421549559],[-82.44545953412504,27.960674790472908],[-82.44545411894107,27.96061420493072],[-82.44546314424798,27.960478684514314],[-82.44546394705972,27.96014148758337],[-82.4454606466958,27.959686043346096],[-82.44543637812345,27.959385176524037],[-82.44543637812345,27.95927731345499],[-82.44543472790146,27.95909948491608],[-82.44543967856735,27.958867724331554],[-82.44543967856735,27.95879630115887],[-82.44543472748391,27.958767148904812],[-82.44542977681805,27.95874819988684],[-82.4454116243764,27.95872196277901],[-82.44538357060347,27.958676776634277],[-82.44536211771793,27.958627217614648],[-82.44535056616417,27.958592234764396],[-82.44533241372301,27.958555794282034],[-82.44533241372301,27.958509150448023],[-82.44533736438889,27.958466879455685],[-82.44537641594606,27.95837274294874],[-82.44541272082886,27.958272166984642],[-82.44544077460225,27.958200743417095],[-82.44547047859717,27.95808121815766],[-82.44547872970698,27.957987930058536],[-82.44547503433391,27.957731510495236],[-82.44547668450656,27.95740291433421],[-82.44547173384066,27.95718281121232],[-82.44547833488636,27.956773369363773],[-82.44547338422046,27.956454144947287],[-82.44547965587387,27.95619501363204],[-82.44547470520794,27.956008434093178],[-82.44547470520794,27.95586704157077],[-82.44547800565189,27.955779582186437],[-82.44547074242203,27.95572427471741],[-82.44546249131221,27.95565576478154],[-82.44545754064632,27.955585797142973],[-82.44544598909256,27.955501252851533],[-82.44543113709489,27.955387555252628],[-82.44542453620703,27.95529134949855],[-82.4454113340845,27.954936097778585],[-82.44538976622098,27.954585444060555],[-82.44538283618526,27.95440065071132],[-82.44538118596329,27.954319020845304],[-82.44538118596329,27.954246136985006],[-82.44537953574132,27.95416013396604],[-82.44538448640722,27.95407121551851],[-82.44538943707312,27.953980839316813],[-82.44539593753265,27.95353756386106],[-82.44541682603793,27.95302810582757],[-82.44543305216304,27.952405400518813],[-82.44545450568296,27.95187188462681],[-82.44545450568296,27.95155410343139],[-82.4454693578444,27.951183575828196],[-82.44548321330626,27.950766356854686],[-82.44549641508152,27.950514170190402],[-82.44550734934955,27.950145975236182],[-82.44552551111644,27.949651123995153],[-82.44553302972153,27.94923586227509],[-82.44555118216266,27.948821861804348],[-82.44556108377402,27.948389636700057],[-82.44556768466188,27.948089338388215],[-82.44557428554974,27.947861927460877],[-82.4455775856886,27.94754974652116],[-82.44558583679841,27.94734420102273],[-82.44559408796412,27.947073542335048],[-82.44560233907396,27.9468315514916],[-82.4456112914868,27.946528307206123],[-82.44562614348449,27.9461828123449],[-82.44562779309825,27.945966472568088],[-82.44563934465198,27.945718648072926],[-82.44563714467661,27.945505373998373],[-82.4456420953425,27.945388750279534],[-82.4456420953425,27.945328980574814],[-82.44563714427026,27.945289427480716],[-82.44561734160668,27.945244235714327],[-82.44559918916507,27.94521653752497],[-82.44555793361641,27.94517863472933],[-82.44552327895515,27.94514802092209],[-82.4454985256261,27.945107202500296],[-82.44548367362843,27.945085335481423],[-82.44545561985505,27.945029939015697],[-82.44544571852371,27.944967253506476],[-82.44545727007699,27.944900194548964],[-82.44549027451629,27.944828762136595],[-82.445566847819,27.944764279182294],[-82.4456246055873,27.944724918421286],[-82.44569556513135,27.944641823433926],[-82.4457252691267,27.944561643999506],[-82.44578642178506,27.944407356259816],[-82.44585573110712,27.94430093604001],[-82.44604550663216,27.94408809528423],[-82.44614340052823,27.944022601433716],[-82.44622591162602,27.94397740913729],[-82.4464503418119,27.94391618083482],[-82.44716239954012,27.94371337090928],[-82.44799212014294,27.94348257254245],[-82.44806142946501,27.943469452134167],[-82.4481043352361,27.943465078664914],[-82.448181895668,27.94346216301838],[-82.44908485501377,27.943462163174004],[-82.45031772407883,27.943453714858734],[-82.45036558051535,27.94345225703495],[-82.45040518584206,27.943437678799796],[-82.45043819028136,27.943412895795845],[-82.45046294361083,27.943392486258617],[-82.45048109605197,27.943345835873316],[-82.45048274627395,27.94323649895503],[-82.45049211556308,27.94274983575346],[-82.45049211556308,27.942643413900583],[-82.45049871645094,27.9425763535003],[-82.45051177545969,27.94251453802991],[-82.45053157812279,27.942476634285313],[-82.45055633145226,27.94242269431855],[-82.45058603544719,27.94238479054171],[-82.45062564077432,27.942325019174703],[-82.45067019676692,27.94228565752482],[-82.45072795453525,27.942246295860656],[-82.45078076163811,27.942217139062805],[-82.45085007096019,27.94219089793802],[-82.45113393573598,27.94210638373272],[-82.45126760371423,27.94206993768661],[-82.4515543005533,27.941986281364905],[-82.45191899960525,27.94190026858199],[-82.45214838045655,27.941849244017547],[-82.45231835331802,27.941812797884666],[-82.45272481488226,27.94171194721754],[-82.4529756486191,27.94165071763095],[-82.45348068238928,27.941524296869176],[-82.45393048558786,27.94141737383677],[-82.4540988082269,27.941369264747323],[-82.45416502107115,27.941361143361647],[-82.45427888638628,27.94135239625146],[-82.45438285036913,27.94136697476806],[-82.4545016663497,27.94139904749764],[-82.45471619520377,27.941487976379577],[-82.45509873094014,27.94163612793102],[-82.45523734958428,27.941730888004514],[-82.45527860513293,27.941821274458306],[-82.45548797508258,27.9422980587552],[-82.45578158647653,27.942978515427086],[-82.45603656357743,27.943554038830726],[-82.45643571173714,27.944468541829778],[-82.45669892381342,27.945074303230953],[-82.45682968261072,27.945360692853725],[-82.45601698968747,27.94565674811625],[-82.45623050530146,27.94619773217434],[-82.45645941764953,27.94668866047546],[-82.45670767871918,27.94719686771687],[-82.45701814768098,27.947956562577176],[-82.45734900279602,27.948711516792443],[-82.45774310159422,27.949606126546826],[-82.45806706496683,27.950257125134158],[-82.45827010606209,27.95070551754175],[-82.45861094679589,27.951516672593456],[-82.45906654609765,27.952552213350828],[-82.45942825983445,27.953356024519593],[-82.45950135462937,27.953564072856594],[-82.45950135462937,27.953700380170673],[-82.45950135462937,27.95399451642018],[-82.45949729380743,27.95423125964929],[-82.45947421533901,27.954851950073703],[-82.45947421533901,27.955350541096095],[-82.4594739486678,27.956220876930786],[-82.45948613113305,27.956988481197428],[-82.45947656017192,27.957823820962233],[-82.45946843852806,27.958756409716344],[-82.45946244702569,27.959390842001767],[-82.45946622818312,27.960278023696674],[-82.45946216736118,27.961250045850008],[-82.45946167613104,27.962230564218927],[-82.46091545037505,27.9622700184497],[-82.46092357201894,27.961506038513406],[-82.4609316936628,27.96103617023401],[-82.46093084558194,27.959942780715537],[-82.46094302804775,27.959397581953283],[-82.46095214222014,27.958553077084304],[-82.46096838610123,27.957672000833966],[-82.46097650774509,27.956760924297512],[-82.46096838612767,27.955450822450544],[-82.46098892631032,27.954049196057994],[-82.46099704795421,27.953464510095856],[-82.46099704795421,27.95291210449909],[-82.46101329099497,27.95262450324094],[-82.46099298688529,27.952524065288827],[-82.46095643948841,27.952330363259208],[-82.46086710140632,27.952140247966327],[-82.46069376750853,27.951716780106253],[-82.46051509134436,27.951275566124025],[-82.46007640840632,27.950251087571473],[-82.45969419967604,27.949362566213267],[-82.45934496966053,27.94861284607157],[-82.45898108737995,27.94770735066247],[-82.45869276902395,27.94711545585845],[-82.45839242319411,27.946410388133515],[-82.45809192295692,27.94573239061839],[-82.45784421282033,27.945154834256385],[-82.45780766542345,27.945083087909268],[-82.45701174432847,27.94531267605339],[-82.45682900734235,27.945359311085937]]
+      }
+    }]
+  };
+ 
+  const streetcarStations = {
+    "type": "FeatureCollection",
+    "features": [
+      {"type":"Feature","properties":{"name":"Centennial Park"},"geometry":{"type":"Point","coordinates":[-82.43724641642731,27.96099934554472]}},
+      {"type":"Feature","properties":{"name":"Centro Ybor"},"geometry":{"type":"Point","coordinates":[-82.44128128999138,27.96101857843152]}},
+      {"type":"Feature","properties":{"name":"Streetcar Society"},"geometry":{"type":"Point","coordinates":[-82.44337420760375,27.96103084191388]}},
+      {"type":"Feature","properties":{"name":"Cadrecha Plaza"},"geometry":{"type":"Point","coordinates":[-82.44546495650764,27.960609251149805]}},
+      {"type":"Feature","properties":{"name":"Port Tampa Bay"},"geometry":{"type":"Point","coordinates":[-82.44545441945867,27.95156485975876]}},
+      {"type":"Feature","properties":{"name":"York Street"},"geometry":{"type":"Point","coordinates":[-82.44555954105334,27.948219684529434]}},
+      {"type":"Feature","properties":{"name":"Cumberland Ave"},"geometry":{"type":"Point","coordinates":[-82.44564046272593,27.945743649788525]}},
+      {"type":"Feature","properties":{"name":"Water Street"},"geometry":{"type":"Point","coordinates":[-82.44854776940194,27.943459185242148]}},
+      {"type":"Feature","properties":{"name":"HSBC"},"geometry":{"type":"Point","coordinates":[-82.45196657963196,27.94188779631527]}},
+      {"type":"Feature","properties":{"name":"Dick Greco Plaza"},"geometry":{"type":"Point","coordinates":[-82.45478135847988,27.941527312330805]}},
+      {"type":"Feature","properties":{"name":"Whiting Hilton"},"geometry":{"type":"Point","coordinates":[-82.456757719803,27.945191079966477]}},
+      {"type":"Feature","properties":{"name":"City Hall"},"geometry":{"type":"Point","coordinates":[-82.45692471074521,27.947730056017406]}},
+      {"type":"Feature","properties":{"name":"Fortune"},"geometry":{"type":"Point","coordinates":[-82.45948467308722,27.954507367215726]}},
+      {"type":"Feature","properties":{"name":"Theatre Plaza"},"geometry":{"type":"Point","coordinates":[-82.4594604421857,27.958670993865653]}},
+      {"type":"Feature","properties":{"name":"Tampa Heights"},"geometry":{"type":"Point","coordinates":[-82.46013734675549,27.962237177666708]}},
+      {"type":"Feature","properties":{"name":"Riverside"},"geometry":{"type":"Point","coordinates":[-82.46095715403796,27.959490064600487]}},
+      {"type":"Feature","properties":{"name":"Massey Park"},"geometry":{"type":"Point","coordinates":[-82.46091644664672,27.952292996757137]}},
+      {"type":"Feature","properties":{"name":"RiverWalk"},"geometry":{"type":"Point","coordinates":[-82.45881632201082,27.947402262418223]}}
+    ]
+  };
+ 
+  const airportLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.53325604936427,27.979971435934942],[-82.53326827179198,27.979199678746525],[-82.53324382693701,27.978832687376595],[-82.53307271295009,27.978535855208435],[-82.53289548774971,27.978260610103803],[-82.53274881861861,27.978028540156274],[-82.53266326162515,27.977731705775028],[-82.53271215133552,27.97732153328559],[-82.53294437746008,27.976959932560064],[-82.53323160450931,27.976592933569236],[-82.53389919092908,27.975676952522278],[-82.53471547218675,27.9748418554057],[-82.53557104212013,27.974134827647603],[-82.53632883263191,27.97349256177405],[-82.53712371112013,27.972853809454648],[-82.5378631679908,27.972184549589016],[-82.53832873199339,27.971770389557605],[-82.53867707118066,27.97133320782207],[-82.53883596273947,27.97091761366572],[-82.53884207395332,27.97052360733734],[-82.53872596089101,27.970064831032616],[-82.53856533740402,27.96944322497569],[-82.53827199914137,27.969027623538523],[-82.53797254966489,27.968887290224913],[-82.53733087221495,27.96892507228847],[-82.53652419199237,27.968989841510833],[-82.53599862760473,27.968887290224913],[-82.53571751176979,27.968633610309013],[-82.53558348580161,27.968268714684],[-82.53557737458777,27.9676210163867],[-82.53560062044973,27.966109801435323],[-82.53563294092773,27.96390172220279],[-82.53566752217225,27.963102224662677],[-82.53566605065589,27.960907288083234],[-82.53187101953499,27.96084251456766],[-82.531840804606,27.957755856923896],[-82.5319596190657,27.956989733518725],[-82.53223493965518,27.95608572290176],[-82.53226853518098,27.955284490385623],[-82.53230213070617,27.952391101238433],[-82.52304102550015,27.952316922547865],[-82.52129754638551,27.952262406380953],[-82.5198732516861,27.952262360969456]],"type":"LineString"}}]};
+
+  const cyprusLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.4667774078785,27.95014485608752],[-82.4673610309312,27.950142769147405],[-82.46780134323548,27.95003848475295],[-82.46812041012232,27.94990883374362],[-82.46825441821485,27.94988064872085],[-82.46829908757886,27.949920107750657],[-82.46837885430068,27.95002721075825],[-82.46837885430068,27.95025269042712],[-82.46836290095622,27.950827661451612],[-82.46835837292342,27.95143208981729],[-82.46835199158564,27.951987325429997],[-82.46836044468256,27.95204996567989],[-82.46844075544334,27.9520798358744],[-82.46855488126013,27.9520798358744],[-82.46874086407342,27.952053699454652],[-82.4690494264678,27.952031296804122],[-82.47034233579184,27.95201905289612],[-82.47171607264134,27.952026519530946],[-82.4732858817299,27.952040750445178],[-82.47495127309926,27.952053915415846],[-82.47695845967641,27.952057647248054],[-82.4781692471007,27.95206884664111],[-82.47893853964612,27.95208378173679],[-82.4809974911946,27.95211047100169],[-82.48280208384521,27.952125405471108],[-82.48361787209424,27.95213287301526],[-82.48495127520982,27.952144072837243],[-82.48703883394498,27.95210089371693],[-82.48877033919095,27.952079763382173],[-82.48976835722304,27.952044297144624],[-82.49078220844082,27.952039228872138],[-82.49161389047768,27.95205442829743],[-82.49355256918331,27.952049361691593],[-82.49564237652463,27.952079760463363],[-82.49820374969052,27.952117979967284],[-82.4997466626239,27.952128113172293],[-82.50220947547183,27.952176786100566],[-82.5037294454626,27.952227452088437],[-82.50613435108464,27.952238664161612],[-82.50803287963933,27.952238664161612],[-82.50952588284107,27.952228745860168],[-82.51225035836482,27.95222367897449],[-82.51421981920821,27.952247990553772],[-82.51722362527657,27.952274215277654],[-82.51852563730651,27.952294481656665],[-82.52056026078202,27.952330326639782]],"type":"LineString"}}]};
+
+  const airportStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Main Terminal"},"geometry":{"coordinates":[-82.53335225160579,27.97997694864536],"type":"Point"}},{"type":"Feature","properties":{"name":"Economy Parking"},"geometry":{"coordinates":[-82.5355917014165,27.966932917223772],"type":"Point"}},{"type":"Feature","properties":{"name":"Car Rental"},"geometry":{"coordinates":[-82.53557289024336,27.963659835916644],"type":"Point"}},{"type":"Feature","properties":{"name":"Westshore Stop"},"geometry":{"coordinates":[-82.52824334838022,27.952400222527928],"type":"Point"}}]};
+
+  const cyprusStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Julian B Lane"},"geometry":{"coordinates":[-82.46958347365761,27.9520318788652],"type":"Point"}},{"type":"Feature","properties":{"name":"N Rome"},"geometry":{"coordinates":[-82.47758432869897,27.952092859745193],"type":"Point"}},{"type":"Feature","properties":{"name":"Armenia"},"geometry":{"coordinates":[-82.48578484626368,27.952127757368416],"type":"Point"}},{"type":"Feature","properties":{"name":"North Mac Dill"},"geometry":{"coordinates":[-82.49401896303505,27.952139358366907],"type":"Point"}},{"type":"Feature","properties":{"name":"MidTown"},"geometry":{"coordinates":[-82.50335431544072,27.95229360348725],"type":"Point"}},{"type":"Feature","properties":{"name":"Transit Center"},"geometry":{"coordinates":[-82.52029083191181,27.95228665538805],"type":"Point"}}]};
+
+  const usfLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.4270046666131,27.959567926366944],[-82.42661285336841,27.9595635456038],[-82.42651861980329,27.959611733988766],[-82.42650374081919,27.959800106558774],[-82.42649382149648,27.961548013099645],[-82.42649617125306,27.96340658942887],[-82.42648303314053,27.9660063149244],[-82.42646815627998,27.968838957712933],[-82.42645327907435,27.97082515327176],[-82.42644831941297,27.972060392516667],[-82.42642848076753,27.972437093869544],[-82.4264449355625,27.974187129998825],[-82.42642493036875,27.97633049821637],[-82.4264100513847,27.97733791249874],[-82.42639447009861,27.978860368290412],[-82.42641714664217,27.979752410029377],[-82.42641218698081,27.98033056103317],[-82.42646674325509,27.980917468731164],[-82.42654413256123,27.981327483807277],[-82.42663836612638,27.981669113877132],[-82.42696570377336,27.98245310699582],[-82.42729800108242,27.983110080079925],[-82.4281047102304,27.98475382145756],[-82.42835765295766,27.98531880649658],[-82.42854603010501,27.985688638431938],[-82.42866506197697,27.985986457789878],[-82.42877913418687,27.986385008878344],[-82.4288485694459,27.9866740669882],[-82.42892296436563,27.987479921868854],[-82.42899828735801,27.989109581971405],[-82.42903300498755,27.989832207529957],[-82.42921079090533,27.993261513811646],[-82.42924550853488,27.993914041667452],[-82.42931918560821,27.995452536524056],[-82.42943969448586,27.997748444982662],[-82.42950417008355,27.998598008864278],[-82.42957034566962,28.000677140494915],[-82.42965078371981,28.002456247576262],[-82.42975087085148,28.004353181330387],[-82.42978558848102,28.00510197817117],[-82.42985998314897,28.006763620234338],[-82.42995079022597,28.008429026464214],[-82.43006485583405,28.009369610403155],[-82.4301987666894,28.009886300508313],[-82.43042195144923,28.010613165442223],[-82.43073696536678,28.01159925182077],[-82.43089071486823,28.012115931229673],[-82.43133849838853,28.01352725724567],[-82.43185911143698,28.01522532848594],[-82.4323844782385,28.01687748530003],[-82.43273018031057,28.017887924385732],[-82.43298312303789,28.018378303382875],[-82.4332162271204,28.01875484288304],[-82.43343941188022,28.019135759409693],[-82.43442729478916,28.020573122890255],[-82.43570248322577,28.022448861046016],[-82.43674868957271,28.02404628895283],[-82.43790404386121,28.02570669472317],[-82.43918052346483,28.027583557888292],[-82.44042882157346,28.029423965567318],[-82.44176984372085,28.03135740218687],[-82.44330028674018,28.03353952729863],[-82.44536267218025,28.036597215023505],[-82.44661201327838,28.038438618277098],[-82.44683023837682,28.03884573039612],[-82.44700382652307,28.039318503827275],[-82.44717303558856,28.04003795726392],[-82.4473267850893,28.04187648855948],[-82.44745077583418,28.043847882287864],[-82.44755319709094,28.045250611566857],[-82.44761271302656,28.046217986260842],[-82.447855073167,28.049667818407443],[-82.44793318998045,28.050890156775154],[-82.44782903709257,28.051397893515116],[-82.447586013688,28.051918758886416],[-82.4469759753449,28.052518407491846],[-82.44618738919351,28.05286856571483],[-82.44561913018727,28.052951175362452],[-82.44386341007763,28.052946798395027],[-82.44132698846515,28.052921428700074],[-82.43705754394907,28.052892469815248],[-82.43244146919784,28.052875384303164],[-82.4279209289164,28.05286738291194],[-82.42336765222221,28.05290152791936],[-82.42147802125723,28.05289715094993],[-82.41754571442182,28.052871159952304],[-82.41183752181833,28.05283194457786],[-82.40966787078729,28.05288104953918],[-82.40971617653263,28.05398943663559],[-82.40971314183022,28.054991426924786],[-82.40960674376404,28.055320062180684],[-82.40924195039514,28.05549443966413],[-82.40882395799338,28.05564198962142],[-82.4087251597891,28.056064517924057],[-82.40872573987731,28.057948119065045],[-82.40871591727998,28.06071691896335],[-82.40870044212822,28.062099700200164],[-82.40826725000267,28.062844108990745],[-82.40807725345604,28.06361533788443],[-82.4080657745531,28.06550527130301],[-82.40802017538165,28.066564845079625],[-82.40788854501153,28.067512178352317],[-82.40776694722207,28.068249843626177],[-82.40775934736014,28.068913738042326],[-82.40778214694586,28.069235624766947],[-82.41114128588573,28.069202094945425],[-82.41561015203892,28.069198778465378],[-82.41764691501638,28.069218896360738],[-82.42044782171439,28.069222440481667],[-82.42587582957655,28.069306391319486],[-82.42616542818675,28.069319840568767],[-82.42613584045849,28.06206726115147],[-82.42623983320206,28.052888908468603]],"type":"LineString"}}]};
+
+  const usfStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Shaw"},"geometry":{"coordinates":[-82.44286288999719,28.052924887483556],"type":"Point"}},{"type":"Feature","properties":{"name":"22nd St"},"geometry":{"coordinates":[-82.43460397058682,28.052863588087092],"type":"Point"}},{"type":"Feature","properties":{"name":"USF"},"geometry":{"coordinates":[-82.40870449072834,28.05999336056759],"type":"Point"}},{"type":"Feature","properties":{"name":"USF Village"},"geometry":{"coordinates":[-82.40802978554083,28.066484025419825],"type":"Point"}},{"type":"Feature","properties":{"name":"Fletcher District"},"geometry":{"coordinates":[-82.40911612566572,28.069308943417397],"type":"Point"}},{"type":"Feature","properties":{"name":"42nd"},"geometry":{"coordinates":[-82.41503720117808,28.069268918142114],"type":"Point"}},{"type":"Feature","properties":{"name":"Advent Health"},"geometry":{"coordinates":[-82.42289866578243,28.069310395816345],"type":"Point"}},{"type":"Feature","properties":{"name":"Bougainvillea"},"geometry":{"coordinates":[-82.44744256350481,28.043629002996042],"type":"Point"}},{"type":"Feature","properties":{"name":"E 26th"},"geometry":{"coordinates":[-82.42642937549276,27.97410988332136],"type":"Point"}},{"type":"Feature","properties":{"name":"Middleton"},"geometry":{"coordinates":[-82.4289885371122,27.988708420937726],"type":"Point"}},{"type":"Feature","properties":{"name":"Columbus"},"geometry":{"coordinates":[-82.42647081261823,27.966787835920158],"type":"Point"}},{"type":"Feature","properties":{"name":"Waters"},"geometry":{"coordinates":[-82.43765601116054,28.025253170405435],"type":"Point"}},{"type":"Feature","properties":{"name":"Moffitt"},"geometry":{"coordinates":[-82.42600689120759,28.064115117929575],"type":"Point"}},{"type":"Feature","properties":{"name":"DOT"},"geometry":{"coordinates":[-82.41620706773574,28.05259122446546],"type":"Point"}}]};
+
+  const greyLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.50568885556191,27.952296058359863],[-82.50541388936081,27.97545353778996]],"type":"LineString"}}]};
+  const greyStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Sports District"},"geometry":{"coordinates":[-82.50544640170844,27.975976478273978],"type":"Point"}}]};
+
+  const plantCityLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.39752739161491,27.957022966411785],[-82.39706261165631,27.956338731075647],[-82.39626215728316,27.955928187791827],[-82.39466124853733,27.95580274369931],[-82.39324108755258,27.955586067196435],[-82.39211786931938,27.955312369940017],[-82.39112375663022,27.95502726789249],[-82.38895478349028,27.954856206302495],[-82.38690910946337,27.954700761271795],[-82.38561805402263,27.954484082557244],[-82.38202586458874,27.953820025217098],[-82.38128996298761,27.95370598291227],[-82.3792888270552,27.953728791382233],[-82.37591641056572,27.953853917719414],[-82.37534834617207,27.953967959868024],[-82.37370870576231,27.95426446889104],[-82.37268877196459,27.954401318934686],[-82.36913777447062,27.954146008791383],[-82.36297141382789,27.953654633414857],[-82.35643564731532,27.95316425402396],[-82.3509890832323,27.952739756394053],[-82.34772271296815,27.952466051922045],[-82.34263615769194,27.952042593201057],[-82.33988620960348,27.95175748251924],[-82.33559490814136,27.951179454944068],[-82.33058545999499,27.950483780909707],[-82.32565629902554,27.94982788121409],[-82.31995163420376,27.94903651901663],[-82.3134551529484,27.948144078350452],[-82.30909012627208,27.94754687334813],[-82.30344750759632,27.946765624316726],[-82.29732666071271,27.94593810034928],[-82.28948420106093,27.944855698936152],[-82.28405838637487,27.944106130423577],[-82.28034555704193,27.943596795234455],[-82.27311180177767,27.942597524061043],[-82.26766981094467,27.94185026563187],[-82.26626925465735,27.941666500783896],[-82.26505582412159,27.94165118685406],[-82.2642150901071,27.94179666909865],[-82.26315767206867,27.94211826073372],[-82.26204824986468,27.94273847046898],[-82.25820251874667,27.945353081473655],[-82.25694575140638,27.946195315518437],[-82.25570136778471,27.946795688808933],[-82.25471328863394,27.94711726556018],[-82.25257245047399,27.94763025506245],[-82.24496264160693,27.94935950070777],[-82.23344122174863,27.951999994598765],[-82.22590188678032,27.953769240195427],[-82.22447237104714,27.954266789402695],[-82.22096418251844,27.956232466444177],[-82.2157413086049,27.959288671903238],[-82.21059030940185,27.9622992394019],[-82.20357317340246,27.96638106039032],[-82.19779617225093,27.969721201363143],[-82.19129878055665,27.973504520071145],[-82.18446531508098,27.97750723328997],[-82.17874130002336,27.980843994782077],[-82.173038020469,27.98422212379687],[-82.16673028979181,27.987950176858376],[-82.16321026038885,27.990358344572087],[-82.15886238541772,27.993335761801518],[-82.15297139854096,27.997337397936292],[-82.14819999091642,28.000630964712826],[-82.13545217019487,28.00939024283791],[-82.13281198204298,28.011177871737587],[-82.13194751607794,28.011756421099548],[-82.13162178414353,28.01193991980577],[-82.13107269316865,28.012178193778112],[-82.13044604697122,28.01233430402536],[-82.12413298114322,28.01346890771019]],"type":"LineString"}}]};
+  const plantCityStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Plant City"},"geometry":{"coordinates":[-82.12411535033416,28.01345375349139],"type":"Point"}},{"type":"Feature","properties":{"name":"Brandon"},"geometry":{"coordinates":[-82.28643306482742,27.944429175270642],"type":"Point"}}]};
+
+  const sunCityLineData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"coordinates":[[-82.42664298713288,27.959569501192234],[-82.42288338049383,27.959569501192234],[-82.41627195572202,27.9595645385334],[-82.41182063589356,27.959557078735216],[-82.40788818048954,27.9595625867495],[-82.40144963496562,27.95955899540934],[-82.40003632442742,27.959430299750082],[-82.39925681809942,27.95925656036644],[-82.39834427694679,27.95872277645256],[-82.39784793901968,27.95815804585264],[-82.3975871512952,27.95745955918072],[-82.39750302622281,27.95678336033231],[-82.39750183009639,27.95381761301155],[-82.39750183009639,27.952584062623217],[-82.39751462358568,27.948979804939356],[-82.39751495827082,27.945523111554422],[-82.39751495827082,27.944125970218153],[-82.39752485625554,27.941178120345924],[-82.3975248577893,27.93731715856036],[-82.39755009602987,27.93342135833244],[-82.39756692310335,27.93020917146447],[-82.39757798197627,27.925739531395365],[-82.39757798199192,27.922490692420567],[-82.39760178540506,27.91521843969211],[-82.39767307707523,27.9063840189432],[-82.39767307708506,27.894691347556943],[-82.39761569613762,27.893879923764715],[-82.39757744217226,27.892933254985337],[-82.39723315648641,27.891834432627363],[-82.39616204546282,27.889332457030903],[-82.39103711461242,27.878188322201723],[-82.38733849773848,27.87011937813608],[-82.38475653772521,27.86471446833221],[-82.38385967088487,27.862468374217258],[-82.38317623731542,27.859272377587587],[-82.38257330280126,27.85602035555594],[-82.38217042516186,27.85381924882681],[-82.38183167076444,27.85199441210365],[-82.38149166374872,27.850155693736227],[-82.38120180411963,27.848691353881094],[-82.38062059671124,27.845510936878924],[-82.38017808868489,27.84311070703606],[-82.37966581306782,27.84030996208189],[-82.37904317825854,27.836924147965462],[-82.3785226769736,27.834133105626307],[-82.37799956982279,27.831278587703693],[-82.37735336902128,27.827804339065494],[-82.37682389060195,27.824998633655596],[-82.37599418077977,27.820349959933694],[-82.37521902361671,27.816144580431043],[-82.37518825855177,27.81353237492017],[-82.37523441319948,27.80891810501346],[-82.37524229662036,27.801477243020983],[-82.37526384004941,27.797246118768626],[-82.37559774692029,27.79535951272574],[-82.37697645916089,27.79272964360399],[-82.37865652160936,27.78995441231517],[-82.3814503284466,27.785405749529843],[-82.38502358902525,27.77951132356533],[-82.38888165907304,27.7731356641073],[-82.39177977770031,27.768369063902938],[-82.39670831980423,27.760413652398825],[-82.39890748040968,27.756687442729458],[-82.40777441174518,27.7422895854435],[-82.41415486174671,27.731742979824574],[-82.42291091152616,27.717332654392862],[-82.42484582551513,27.71410079841371],[-82.4255005383182,27.71336057922406],[-82.42597382468175,27.712892702238634],[-82.42643922293918,27.712606388466853]],"type":"LineString"}}]};
+  const sunCityStopsData = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ruskin / Sun City"},"geometry":{"coordinates":[-82.42648837220348,27.712590149259455],"type":"Point"}},{"type":"Feature","properties":{"name":"Apollo Beach"},"geometry":{"coordinates":[-82.39204423727372,27.767967385041587],"type":"Point"}},{"type":"Feature","properties":{"name":"Gibsonton"},"geometry":{"coordinates":[-82.3811553753311,27.848399031812136],"type":"Point"}}]};
+
+  const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/navigation-night-v1",
+    center: [-82.49, 27.918],
+    zoom: 11.5,
+    pitch: 0,
+    bearing: 0
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+  map.on("load", () => {
+
+    map.addSource('hc-zoning', {
+      type: 'raster',
+      tiles: [
+        'https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&f=image&layers=show:28'
+      ],
+      tileSize: 512,
+      attribution: '© City of Tampa GIS'
+    });
+    map.addLayer({
+      id: 'hc-zoning-layer',
+      type: 'raster',
+      source: 'hc-zoning',
+      paint: { 'raster-opacity': 0.7 },
+      layout: { visibility: 'none' }
+    }, 'line-glow-outer');
+
+    // ── ALL LINES first (bottom of stack) ──
+    map.addSource('transit-line', { type: 'geojson', data: lineData });
+    map.addLayer({ id: 'line-glow-outer', type: 'line', source: 'transit-line', paint: { 'line-color': '#6b0000', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'line-glow-inner', type: 'line', source: 'transit-line', paint: { 'line-color': '#dc2626', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'line-core', type: 'line', source: 'transit-line', paint: { 'line-color': '#ff6b6b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('streetcar-line', { type: 'geojson', data: streetcarLine });
+    map.addLayer({ id: 'streetcar-glow-outer', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#7a5c00', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'streetcar-glow-inner', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#c9a000', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'streetcar-core', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#f5c518', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('airport-line', { type: 'geojson', data: airportLineData });
+    map.addLayer({ id: 'airport-glow-outer', type: 'line', source: 'airport-line', paint: { 'line-color': '#003a5c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'airport-glow-inner', type: 'line', source: 'airport-line', paint: { 'line-color': '#0288d1', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'airport-core', type: 'line', source: 'airport-line', paint: { 'line-color': '#4fc3f7', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('cyprus-line', { type: 'geojson', data: cyprusLineData });
+    map.addLayer({ id: 'cyprus-glow-outer', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#003a5c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'cyprus-glow-inner', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#0288d1', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'cyprus-core', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#4fc3f7', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('usf-line', { type: 'geojson', data: usfLineData });
+    map.addLayer({ id: 'usf-glow-outer', type: 'line', source: 'usf-line', paint: { 'line-color': '#064e3b', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'usf-glow-inner', type: 'line', source: 'usf-line', paint: { 'line-color': '#16a34a', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'usf-core', type: 'line', source: 'usf-line', paint: { 'line-color': '#4ade80', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('grey-line', { type: 'geojson', data: greyLineData });
+    map.addLayer({ id: 'grey-glow-outer', type: 'line', source: 'grey-line', paint: { 'line-color': '#1a202c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'grey-glow-inner', type: 'line', source: 'grey-line', paint: { 'line-color': '#4a5568', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'grey-core', type: 'line', source: 'grey-line', paint: { 'line-color': '#a0aec0', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('plantcity-line', { type: 'geojson', data: plantCityLineData });
+    map.addLayer({ id: 'plantcity-glow-outer', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#5c1a1a', 'line-width': 14, 'line-opacity': 0.35, 'line-blur': 6 } });
+    map.addLayer({ id: 'plantcity-glow-inner', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#9b3a3a', 'line-width': 8, 'line-opacity': 0.55, 'line-blur': 2 } });
+    map.addLayer({ id: 'plantcity-core', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#e07b7b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    map.addSource('suncity-line', { type: 'geojson', data: sunCityLineData });
+    map.addLayer({ id: 'suncity-glow-outer', type: 'line', source: 'suncity-line', paint: { 'line-color': '#0d3d38', 'line-width': 14, 'line-opacity': 0.35, 'line-blur': 6 } });
+    map.addLayer({ id: 'suncity-glow-inner', type: 'line', source: 'suncity-line', paint: { 'line-color': '#1a7a72', 'line-width': 8, 'line-opacity': 0.55, 'line-blur': 2 } });
+    map.addLayer({ id: 'suncity-core', type: 'line', source: 'suncity-line', paint: { 'line-color': '#4fd1c5', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+
+    // ── ALL STOPS on top of all lines ──
+    map.addSource('streetcar-stations', { type: 'geojson', data: streetcarStations });
+    map.addLayer({ id: 'streetcar-station-bg', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 6, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#f5c518' } });
+    map.addLayer({ id: 'streetcar-station-dot', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'streetcar-labels', type: 'symbol', source: 'streetcar-stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#f5c518', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('airport-stops', { type: 'geojson', data: airportStopsData });
+    map.addLayer({ id: 'airport-stop-bg', type: 'circle', source: 'airport-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4fc3f7' } });
+    map.addLayer({ id: 'airport-stop-dot', type: 'circle', source: 'airport-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'airport-labels', type: 'symbol', source: 'airport-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fc3f7', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('cyprus-stops', { type: 'geojson', data: cyprusStopsData });
+    map.addLayer({ id: 'cyprus-stop-bg', type: 'circle', source: 'cyprus-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4fc3f7' } });
+    map.addLayer({ id: 'cyprus-stop-dot', type: 'circle', source: 'cyprus-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'cyprus-labels', type: 'symbol', source: 'cyprus-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fc3f7', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('usf-stops', { type: 'geojson', data: usfStopsData });
+    map.addLayer({ id: 'usf-stop-glow', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 14, 'circle-color': '#4ade80', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'usf-stop-bg', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4ade80' } });
+    map.addLayer({ id: 'usf-stop-dot', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'usf-labels', type: 'symbol', source: 'usf-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4ade80', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('grey-stops', { type: 'geojson', data: greyStopsData });
+    map.addLayer({ id: 'grey-stop-glow', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 14, 'circle-color': '#a0aec0', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'grey-stop-bg', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#a0aec0' } });
+    map.addLayer({ id: 'grey-stop-dot', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'grey-labels', type: 'symbol', source: 'grey-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#a0aec0', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('plantcity-stops', { type: 'geojson', data: plantCityStopsData });
+    map.addLayer({ id: 'plantcity-stop-glow', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 14, 'circle-color': '#e07b7b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'plantcity-stop-bg', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 8, 'circle-color': '#0a1223', 'circle-stroke-width': 2.5, 'circle-stroke-color': '#e07b7b' } });
+    map.addLayer({ id: 'plantcity-stop-dot', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 3, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'plantcity-labels', type: 'symbol', source: 'plantcity-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#e07b7b', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.addSource('suncity-stops', { type: 'geojson', data: sunCityStopsData });
+    map.addLayer({ id: 'suncity-stop-glow', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 14, 'circle-color': '#4fd1c5', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'suncity-stop-bg', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 8, 'circle-color': '#0a1223', 'circle-stroke-width': 2.5, 'circle-stroke-color': '#4fd1c5' } });
+    map.addLayer({ id: 'suncity-stop-dot', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 3, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'suncity-labels', type: 'symbol', source: 'suncity-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fd1c5', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    // ── RED LINE STATIONS last — always on top of all other lines ──
+    map.addSource('stations', { type: 'geojson', data: stationData });
+    map.addLayer({ id: 'station-glow', type: 'circle', source: 'stations', filter: ['==', ['get', 'major'], true], paint: { 'circle-radius': 16, 'circle-color': '#ff6b6b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'station-bg', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 10, 7], 'circle-color': '#0a1223', 'circle-stroke-width': ['case', ['==', ['get', 'major'], true], 3, 2], 'circle-stroke-color': '#ff6b6b' } });
+    map.addLayer({ id: 'station-dot', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 4.5, 3], 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': ['case', ['==', ['get', 'major'], true], 13, 11], 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': ['case', ['==', ['get', 'major'], true], '#ff6b6b', '#ffffff'], 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    // ── CLICK: Red line stations → show walk isochrone + popup ──
+    map.on('click', 'station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`
+          <span class="${props.major ? 'popup-major' : ''}">${props.name}</span>
+          <div class="popup-walk-note">⬤ 10-min walk zone loading...</div>
+        `)
+        .addTo(map);
+
+      showWalkIsochrone(lngLat, props.name, 'red');
+    });
+ 
+    // ── CLICK: Gold line stations → show walk isochrone + popup ──
+    map.on('click', 'streetcar-station-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`
+          <span class="popup-streetcar">${props.name}</span>
+          <div class="popup-walk-note" style="color:#f5c518aa;">⬤ 10-min walk zone loading...</div>
+        `)
+        .addTo(map);
+
+      showWalkIsochrone(lngLat, props.name, 'gold');
+    });
+
+    // ── CLICK: Airport line stops → walk isochrone + popup ──
+    map.on('click', 'airport-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-blue">${props.name}</span><div class="popup-walk-note" style="color:#4fc3f7aa;">⬤ 10-min walk zone loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'blue');
+    });
+
+    // ── CLICK: Cyprus line stops → walk isochrone + popup ──
+    map.on('click', 'cyprus-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-blue">${props.name}</span><div class="popup-walk-note" style="color:#4fc3f7aa;">⬤ 10-min walk zone loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'blue');
+    });
+
+    // ── CLICK: USF line stops → walk isochrone + popup ──
+    map.on('click', 'usf-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-green">${props.name}</span><div class="popup-walk-note" style="color:#4ade80aa;">⬤ 10-min walk zone loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'green');
+    });
+
+    map.on('click', 'grey-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-grey">${props.name}</span><div class="popup-walk-note" style="color:#a0aec0aa;">⬤ 10-min walk zone loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'grey');
+    });
+
+    map.on('click', 'plantcity-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-maroon">${props.name}</span><div class="popup-walk-note" style="color:#e07b7baa;">⬤ 15-min drive shed loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'maroon');
+    });
+
+    map.on('click', 'suncity-stop-bg', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates;
+      const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 })
+        .setLngLat(coords)
+        .setHTML(`<span class="popup-teal">${props.name}</span><div class="popup-walk-note" style="color:#4fd1c5aa;">⬤ 15-min drive shed loading...</div>`)
+        .addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'teal');
+    });
+
+    map.on('mouseenter', 'station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'airport-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'airport-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'cyprus-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'cyprus-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'usf-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'usf-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'grey-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'grey-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'plantcity-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'plantcity-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'suncity-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'suncity-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+
+    // ── CLICK on empty map → clear isochrone ──
+    map.on('click', (e) => {
+      const stationFeatures = map.queryRenderedFeatures(e.point, {
+        layers: ['station-bg', 'streetcar-station-bg', 'airport-stop-bg', 'cyprus-stop-bg', 'usf-stop-bg', 'grey-stop-bg', 'plantcity-stop-bg', 'suncity-stop-bg']
+      });
+      if (stationFeatures.length === 0) {
+        if (map.getLayer('isochrone-fill')) map.removeLayer('isochrone-fill');
+        if (map.getLayer('isochrone-border')) map.removeLayer('isochrone-border');
+        if (map.getSource('isochrone')) map.removeSource('isochrone');
+      }
+    });
+
+    // Hide ALL transit layers on load — phases control visibility
+    const allLayerIds = [
+      'line-glow-outer','line-glow-inner','line-core',
+      'streetcar-glow-outer','streetcar-glow-inner','streetcar-core',
+      'streetcar-station-bg','streetcar-station-dot','streetcar-labels',
+      'station-glow','station-bg','station-dot','station-labels',
+      'airport-glow-outer','airport-glow-inner','airport-core',
+      'cyprus-glow-outer','cyprus-glow-inner','cyprus-core',
+      'airport-stop-bg','airport-stop-dot','airport-labels',
+      'cyprus-stop-bg','cyprus-stop-dot','cyprus-labels',
+      'usf-glow-outer','usf-glow-inner','usf-core',
+      'usf-stop-glow','usf-stop-bg','usf-stop-dot','usf-labels',
+      'grey-glow-outer','grey-glow-inner','grey-core',
+      'grey-stop-glow','grey-stop-bg','grey-stop-dot','grey-labels',
+      'plantcity-glow-outer','plantcity-glow-inner','plantcity-core',
+      'plantcity-stop-glow','plantcity-stop-bg','plantcity-stop-dot','plantcity-labels',
+      'suncity-glow-outer','suncity-glow-inner','suncity-core',
+      'suncity-stop-glow','suncity-stop-bg','suncity-stop-dot','suncity-labels',
+    ];
+    allLayerIds.forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+
+    mapLoaded = true;
+    setPhase(1); // Pre-select Phase 1 on load
+  });
+
+  let zoningOn = false;
+  function toggleZoning() {
+    zoningOn = !zoningOn;
+    const btn = document.getElementById('layer-toggle');
+    const legend = document.getElementById('zoning-legend');
+    if (zoningOn) {
+      map.setLayoutProperty('hc-zoning-layer', 'visibility', 'visible');
+      map.setStyle('mapbox://styles/mapbox/light-v11');
+      map.once('style.load', () => {
+        map.addSource('hc-zoning', {
+          type: 'raster',
+          tiles: ['https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&f=image&layers=show:28'],
+          tileSize: 512,
+          attribution: '© City of Tampa GIS'
+        });
+        map.addLayer({ id: 'hc-zoning-layer', type: 'raster', source: 'hc-zoning', paint: { 'raster-opacity': 0.7 } });
+        reAddTransitLayers();
+      });
+      btn.classList.add('active');
+      legend.style.display = 'block';
+    } else {
+      map.setStyle('mapbox://styles/mapbox/navigation-night-v1');
+      map.once('style.load', () => { reAddTransitLayers(); });
+      btn.classList.remove('active');
+      legend.style.display = 'none';
+    }
+  }
+
+  function reAddTransitLayers() {
+    // All lines first
+    map.addSource('transit-line', { type: 'geojson', data: lineData });
+    map.addLayer({ id: 'line-glow-outer', type: 'line', source: 'transit-line', paint: { 'line-color': '#6b0000', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'line-glow-inner', type: 'line', source: 'transit-line', paint: { 'line-color': '#dc2626', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'line-core', type: 'line', source: 'transit-line', paint: { 'line-color': '#ff6b6b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('streetcar-line', { type: 'geojson', data: streetcarLine });
+    map.addLayer({ id: 'streetcar-glow-outer', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#7a5c00', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'streetcar-glow-inner', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#c9a000', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'streetcar-core', type: 'line', source: 'streetcar-line', paint: { 'line-color': '#f5c518', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('airport-line', { type: 'geojson', data: airportLineData });
+    map.addLayer({ id: 'airport-glow-outer', type: 'line', source: 'airport-line', paint: { 'line-color': '#003a5c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'airport-glow-inner', type: 'line', source: 'airport-line', paint: { 'line-color': '#0288d1', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'airport-core', type: 'line', source: 'airport-line', paint: { 'line-color': '#4fc3f7', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('cyprus-line', { type: 'geojson', data: cyprusLineData });
+    map.addLayer({ id: 'cyprus-glow-outer', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#003a5c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'cyprus-glow-inner', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#0288d1', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'cyprus-core', type: 'line', source: 'cyprus-line', paint: { 'line-color': '#4fc3f7', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('usf-line', { type: 'geojson', data: usfLineData });
+    map.addLayer({ id: 'usf-glow-outer', type: 'line', source: 'usf-line', paint: { 'line-color': '#064e3b', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'usf-glow-inner', type: 'line', source: 'usf-line', paint: { 'line-color': '#16a34a', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'usf-core', type: 'line', source: 'usf-line', paint: { 'line-color': '#4ade80', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('grey-line', { type: 'geojson', data: greyLineData });
+    map.addLayer({ id: 'grey-glow-outer', type: 'line', source: 'grey-line', paint: { 'line-color': '#1a202c', 'line-width': 14, 'line-opacity': 0.4, 'line-blur': 6 } });
+    map.addLayer({ id: 'grey-glow-inner', type: 'line', source: 'grey-line', paint: { 'line-color': '#4a5568', 'line-width': 8, 'line-opacity': 0.6, 'line-blur': 2 } });
+    map.addLayer({ id: 'grey-core', type: 'line', source: 'grey-line', paint: { 'line-color': '#a0aec0', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('plantcity-line', { type: 'geojson', data: plantCityLineData });
+    map.addLayer({ id: 'plantcity-glow-outer', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#5c1a1a', 'line-width': 14, 'line-opacity': 0.35, 'line-blur': 6 } });
+    map.addLayer({ id: 'plantcity-glow-inner', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#9b3a3a', 'line-width': 8, 'line-opacity': 0.55, 'line-blur': 2 } });
+    map.addLayer({ id: 'plantcity-core', type: 'line', source: 'plantcity-line', paint: { 'line-color': '#e07b7b', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    map.addSource('suncity-line', { type: 'geojson', data: sunCityLineData });
+    map.addLayer({ id: 'suncity-glow-outer', type: 'line', source: 'suncity-line', paint: { 'line-color': '#0d3d38', 'line-width': 14, 'line-opacity': 0.35, 'line-blur': 6 } });
+    map.addLayer({ id: 'suncity-glow-inner', type: 'line', source: 'suncity-line', paint: { 'line-color': '#1a7a72', 'line-width': 8, 'line-opacity': 0.55, 'line-blur': 2 } });
+    map.addLayer({ id: 'suncity-core', type: 'line', source: 'suncity-line', paint: { 'line-color': '#4fd1c5', 'line-width': 3, 'line-cap': 'round', 'line-join': 'round', 'line-opacity': 1 } });
+    // All stops on top of lines
+    map.addSource('streetcar-stations', { type: 'geojson', data: streetcarStations });
+    map.addLayer({ id: 'streetcar-station-bg', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 6, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#f5c518' } });
+    map.addLayer({ id: 'streetcar-station-dot', type: 'circle', source: 'streetcar-stations', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'streetcar-labels', type: 'symbol', source: 'streetcar-stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#f5c518', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    // Airport line (blue)
+    map.addSource('airport-stops', { type: 'geojson', data: airportStopsData });
+    map.addLayer({ id: 'airport-stop-bg', type: 'circle', source: 'airport-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4fc3f7' } });
+    map.addLayer({ id: 'airport-stop-dot', type: 'circle', source: 'airport-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'airport-labels', type: 'symbol', source: 'airport-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fc3f7', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    // Cyprus line (orange)
+    map.addSource('cyprus-stops', { type: 'geojson', data: cyprusStopsData });
+    map.addLayer({ id: 'cyprus-stop-bg', type: 'circle', source: 'cyprus-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4fc3f7' } });
+    map.addLayer({ id: 'cyprus-stop-dot', type: 'circle', source: 'cyprus-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'cyprus-labels', type: 'symbol', source: 'cyprus-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fc3f7', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    map.addSource('usf-stops', { type: 'geojson', data: usfStopsData });
+    map.addLayer({ id: 'usf-stop-glow', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 14, 'circle-color': '#4ade80', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'usf-stop-bg', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#4ade80' } });
+    map.addLayer({ id: 'usf-stop-dot', type: 'circle', source: 'usf-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'usf-labels', type: 'symbol', source: 'usf-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4ade80', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    map.addSource('grey-stops', { type: 'geojson', data: greyStopsData });
+    map.addLayer({ id: 'grey-stop-glow', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 14, 'circle-color': '#a0aec0', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'grey-stop-bg', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 7, 'circle-color': '#0a1223', 'circle-stroke-width': 2, 'circle-stroke-color': '#a0aec0' } });
+    map.addLayer({ id: 'grey-stop-dot', type: 'circle', source: 'grey-stops', paint: { 'circle-radius': 2.5, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'grey-labels', type: 'symbol', source: 'grey-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 10, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#a0aec0', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    map.addSource('plantcity-stops', { type: 'geojson', data: plantCityStopsData });
+    map.addLayer({ id: 'plantcity-stop-glow', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 14, 'circle-color': '#e07b7b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'plantcity-stop-bg', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 8, 'circle-color': '#0a1223', 'circle-stroke-width': 2.5, 'circle-stroke-color': '#e07b7b' } });
+    map.addLayer({ id: 'plantcity-stop-dot', type: 'circle', source: 'plantcity-stops', paint: { 'circle-radius': 3, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'plantcity-labels', type: 'symbol', source: 'plantcity-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#e07b7b', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    map.addSource('suncity-stops', { type: 'geojson', data: sunCityStopsData });
+    map.addLayer({ id: 'suncity-stop-glow', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 14, 'circle-color': '#4fd1c5', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'suncity-stop-bg', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 8, 'circle-color': '#0a1223', 'circle-stroke-width': 2.5, 'circle-stroke-color': '#4fd1c5' } });
+    map.addLayer({ id: 'suncity-stop-dot', type: 'circle', source: 'suncity-stops', paint: { 'circle-radius': 3, 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'suncity-labels', type: 'symbol', source: 'suncity-stops', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': '#4fd1c5', 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+    // Red stations last — always on top
+    map.addSource('stations', { type: 'geojson', data: stationData });
+    map.addLayer({ id: 'station-glow', type: 'circle', source: 'stations', filter: ['==', ['get', 'major'], true], paint: { 'circle-radius': 16, 'circle-color': '#ff6b6b', 'circle-opacity': 0.15, 'circle-blur': 1 } });
+    map.addLayer({ id: 'station-bg', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 10, 7], 'circle-color': '#0a1223', 'circle-stroke-width': ['case', ['==', ['get', 'major'], true], 3, 2], 'circle-stroke-color': '#ff6b6b' } });
+    map.addLayer({ id: 'station-dot', type: 'circle', source: 'stations', paint: { 'circle-radius': ['case', ['==', ['get', 'major'], true], 4.5, 3], 'circle-color': '#ffffff' } });
+    map.addLayer({ id: 'station-labels', type: 'symbol', source: 'stations', layout: { 'text-field': ['get', 'name'], 'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'], 'text-size': ['case', ['==', ['get', 'major'], true], 13, 11], 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-allow-overlap': false }, paint: { 'text-color': ['case', ['==', ['get', 'major'], true], '#ff6b6b', '#ffffff'], 'text-halo-color': '#0a1223', 'text-halo-width': 2 } });
+
+    map.on('click', 'station-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="${props.major ? 'popup-major' : ''}">${props.name}</span><div class="popup-walk-note">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'red');
+    });
+    map.on('click', 'streetcar-station-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-streetcar">${props.name}</span><div class="popup-walk-note" style="color:#f5c518aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'gold');
+    });
+    map.on('click', 'airport-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-blue">${props.name}</span><div class="popup-walk-note" style="color:#4fc3f7aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'blue');
+    });
+    map.on('click', 'cyprus-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-blue">${props.name}</span><div class="popup-walk-note" style="color:#4fc3f7aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'blue');
+    });
+    map.on('click', 'usf-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-green">${props.name}</span><div class="popup-walk-note" style="color:#4ade80aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'green');
+    });
+    map.on('click', 'grey-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-grey">${props.name}</span><div class="popup-walk-note" style="color:#a0aec0aa;">⬤ 10-min walk zone loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'grey');
+    });
+    map.on('click', 'plantcity-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-maroon">${props.name}</span><div class="popup-walk-note" style="color:#e07b7baa;">⬤ 15-min drive shed loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'maroon');
+    });
+    map.on('click', 'suncity-stop-bg', (e) => {
+      const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="popup-teal">${props.name}</span><div class="popup-walk-note" style="color:#4fd1c5aa;">⬤ 15-min drive shed loading...</div>`).addTo(map);
+      showWalkIsochrone(lngLat, props.name, 'teal');
+    });
+    map.on('mouseenter', 'station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'streetcar-station-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'airport-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'airport-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'cyprus-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'cyprus-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'usf-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'usf-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'grey-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'grey-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'plantcity-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'plantcity-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', 'suncity-stop-bg', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'suncity-stop-bg', () => { map.getCanvas().style.cursor = ''; });
+    map.on('click', (e) => {
+      const stationFeatures = map.queryRenderedFeatures(e.point, {
+        layers: ['station-bg', 'streetcar-station-bg', 'airport-stop-bg', 'cyprus-stop-bg', 'usf-stop-bg', 'grey-stop-bg', 'plantcity-stop-bg', 'suncity-stop-bg']
+      });
+      if (stationFeatures.length === 0) {
+        if (map.getLayer('isochrone-fill')) map.removeLayer('isochrone-fill');
+        if (map.getLayer('isochrone-border')) map.removeLayer('isochrone-border');
+        if (map.getSource('isochrone')) map.removeSource('isochrone');
+      }
+    });
+
+    // After re-adding all layers, hide everything then restore current phase
+    const allLayerIds = [
+      'line-glow-outer','line-glow-inner','line-core',
+      'streetcar-glow-outer','streetcar-glow-inner','streetcar-core',
+      'streetcar-station-bg','streetcar-station-dot','streetcar-labels',
+      'station-glow','station-bg','station-dot','station-labels',
+      'airport-glow-outer','airport-glow-inner','airport-core',
+      'cyprus-glow-outer','cyprus-glow-inner','cyprus-core',
+      'airport-stop-bg','airport-stop-dot','airport-labels',
+      'cyprus-stop-bg','cyprus-stop-dot','cyprus-labels',
+      'usf-glow-outer','usf-glow-inner','usf-core',
+      'usf-stop-glow','usf-stop-bg','usf-stop-dot','usf-labels',
+      'grey-glow-outer','grey-glow-inner','grey-core',
+      'grey-stop-glow','grey-stop-bg','grey-stop-dot','grey-labels',
+      'plantcity-glow-outer','plantcity-glow-inner','plantcity-core',
+      'plantcity-stop-glow','plantcity-stop-bg','plantcity-stop-dot','plantcity-labels',
+      'suncity-glow-outer','suncity-glow-inner','suncity-core',
+      'suncity-stop-glow','suncity-stop-bg','suncity-stop-dot','suncity-labels',
+    ];
+    allLayerIds.forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+    if (currentPhase > 0) setPhase(currentPhase);
+  }
+
+</script>
+</body>
+</html>
