@@ -2,6 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <!-- ═══════════════════════════════════════════════════════
+       MAPBOX API KEY — change only this one line
+  ═══════════════════════════════════════════════════════════ -->
+  <script>
+    const MAPBOX_TOKEN = 'pk.eyJ1IjoidGFsdmFyZXpqciIsImEiOiJjbW9reW40MHYwY2N0MnFuY2FhbWpzMmQ0In0.tW_wPe5mbI-ZnmrYib1IfA
+';
+  </script>
+  <!-- ═══════════════════════════════════════════════════════ -->
   <title>Tampa Transit Master Plan</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
@@ -700,6 +708,340 @@
     .zp-height {
       color: #4fc3f7; font-size: 10px; font-weight: 500; margin-top: 5px;
     }
+
+    /* ── TOD ANALYSIS PANEL ── */
+    #tod-panel {
+      position: absolute;
+      top: 20px;
+      left: 220px;
+      width: 320px;
+      max-height: calc(100vh - 50px);
+      overflow-y: auto;
+      background: rgba(8, 14, 28, 0.97);
+      border: 1px solid rgba(167, 139, 250, 0.5);
+      border-radius: 12px;
+      padding: 0;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: none;
+      z-index: 20;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(167,139,250,0.15);
+    }
+    #tod-panel::-webkit-scrollbar { width: 4px; }
+    #tod-panel::-webkit-scrollbar-track { background: transparent; }
+    #tod-panel::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 2px; }
+
+    #tod-header {
+      background: linear-gradient(135deg, rgba(167,139,250,0.2) 0%, rgba(79,195,247,0.1) 100%);
+      border-bottom: 1px solid rgba(167,139,250,0.2);
+      padding: 14px 16px 12px;
+      border-radius: 12px 12px 0 0;
+      position: relative;
+    }
+    #tod-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(167,139,250,0.18);
+      border: 1px solid rgba(167,139,250,0.4);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #a78bfa;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    #tod-station-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    #tod-coords {
+      font-size: 10px;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+    #tod-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.15s;
+    }
+    #tod-close:hover { background: rgba(255,100,100,0.15); color: #ff6b6b; border-color: rgba(255,100,100,0.3); }
+
+    #tod-body { padding: 14px 16px 16px; }
+
+    /* Stats row */
+    .tod-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .tod-stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      padding: 9px 8px;
+      text-align: center;
+    }
+    .tod-stat-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .tod-stat-label {
+      font-size: 9px;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .tod-stat.purple .tod-stat-val { color: #a78bfa; }
+    .tod-stat.teal .tod-stat-val   { color: #4fd1c5; }
+    .tod-stat.gold .tod-stat-val   { color: #f5c518; }
+
+    /* Section label */
+    .tod-section-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 8px;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tod-section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* Toggle button group */
+    .tod-toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tod-toggle-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px;
+      padding: 8px 4px;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-align: center;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tod-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+    .tod-toggle-btn.active-density {
+      background: rgba(74,222,128,0.12);
+      border-color: rgba(74,222,128,0.5);
+      color: #4ade80;
+    }
+    .tod-toggle-btn.active-zoning {
+      background: rgba(167,139,250,0.12);
+      border-color: rgba(167,139,250,0.5);
+      color: #a78bfa;
+    }
+    .tod-toggle-btn.active-both {
+      background: rgba(79,195,247,0.12);
+      border-color: rgba(79,195,247,0.5);
+      color: #4fc3f7;
+    }
+
+    /* POI summary */
+    #tod-poi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tod-poi-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tod-poi-icon { font-size: 14px; flex-shrink: 0; }
+    .tod-poi-info {}
+    .tod-poi-count { font-size: 14px; font-weight: 700; color: #fff; line-height: 1; }
+    .tod-poi-type  { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+    #tod-poi-status { font-size: 10px; color: #64748b; margin-bottom: 10px; min-height: 14px; }
+
+    /* Upzoning slider */
+    .tod-slider-wrapper {
+      margin-bottom: 14px;
+    }
+    .tod-slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    #tod-upzone-slider {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #4ade80 0%, #a78bfa 100%);
+      outline: none;
+      cursor: pointer;
+    }
+    #tod-upzone-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #a78bfa;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(167,139,250,0.5);
+    }
+    #tod-upzone-val {
+      text-align: center;
+      font-size: 10px;
+      color: #a78bfa;
+      margin-top: 5px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* Potential units callout */
+    #tod-potential-box {
+      background: linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(79,195,247,0.05) 100%);
+      border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .tod-potential-title {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #a78bfa;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .tod-potential-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .tod-potential-item {}
+    .tod-potential-val { font-size: 16px; font-weight: 700; color: #fff; }
+    .tod-potential-lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Catchment toggle */
+    .tod-catchment-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tod-catchment-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 9px;
+      color: #94a3b8;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .tod-catchment-btn.active {
+      background: rgba(255,107,107,0.12);
+      border-color: rgba(255,107,107,0.4);
+      color: #ff6b6b;
+    }
+
+    #tod-loading {
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+      padding: 8px 0;
+      display: none;
+    }
+    .tod-spinner {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: tod-spin 0.7s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes tod-spin { to { transform: rotate(360deg); } }
+
+    .tod-source {
+      font-size: 9px;
+      color: #334155;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* Zoning legend mini */
+    .tod-zoning-legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .tod-zoning-legend.visible { display: grid; }
+    .tod-zl-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: #94a3b8;
+    }
+    .tod-zl-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -735,7 +1077,109 @@
 </div>
 
 <div id="map"></div>
- 
+
+<!-- ── TOD ANALYSIS PANEL (Palma Ceia only) ── -->
+<div id="tod-panel">
+  <div id="tod-header">
+    <div id="tod-badge">🏙 TOD Analysis</div>
+    <div id="tod-station-name">Palma Ceia</div>
+    <div id="tod-coords">27.9197° N, 82.4932° W</div>
+    <div id="tod-close" onclick="closeTodPanel()">✕</div>
+  </div>
+  <div id="tod-body">
+
+    <!-- Key stats row -->
+    <div class="tod-stats-row">
+      <div class="tod-stat purple">
+        <div class="tod-stat-val" id="tod-poi-total">—</div>
+        <div class="tod-stat-label">Total POIs</div>
+      </div>
+      <div class="tod-stat teal">
+        <div class="tod-stat-val" id="tod-est-residents">~3,400</div>
+        <div class="tod-stat-label">Est. Residents</div>
+      </div>
+      <div class="tod-stat gold">
+        <div class="tod-stat-val" id="tod-walk-area">—</div>
+        <div class="tod-stat-label">Walk Area</div>
+      </div>
+    </div>
+
+    <!-- Layer toggles -->
+    <div class="tod-section-label">Layer View</div>
+    <div class="tod-toggle-group">
+      <button class="tod-toggle-btn" id="tod-btn-density" onclick="todSetView('density')">📊 Current Density</button>
+      <button class="tod-toggle-btn" id="tod-btn-zoning" onclick="todSetView('zoning')">🏘 Zoning 3D</button>
+      <button class="tod-toggle-btn" id="tod-btn-both" onclick="todSetView('both')">⚡ Both</button>
+    </div>
+
+    <!-- Catchment area toggles -->
+    <div class="tod-section-label">Catchment</div>
+    <div class="tod-catchment-row">
+      <button class="tod-catchment-btn active" id="tod-catch-walk" onclick="todToggleCatchment('walk')">🚶 10-min Walk</button>
+      <button class="tod-catchment-btn" id="tod-catch-circle" onclick="todToggleCatchment('circle')">⭕ 800m Circle</button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="tod-loading"><span class="tod-spinner"></span><span id="tod-loading-msg">Fetching data...</span></div>
+
+    <!-- POI Summary -->
+    <div class="tod-section-label">Activity by Category</div>
+    <div id="tod-poi-status">Click a view to load POI data</div>
+    <div id="tod-poi-grid">
+      <div class="tod-poi-item"><span class="tod-poi-icon">🍽️</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-restaurants">—</div><div class="tod-poi-type">Restaurants</div></div></div>
+      <div class="tod-poi-item"><span class="tod-poi-icon">🛒</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-shops">—</div><div class="tod-poi-type">Shops</div></div></div>
+      <div class="tod-poi-item"><span class="tod-poi-icon">🌳</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-parks">—</div><div class="tod-poi-type">Parks</div></div></div>
+      <div class="tod-poi-item"><span class="tod-poi-icon">🏫</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-schools">—</div><div class="tod-poi-type">Schools</div></div></div>
+      <div class="tod-poi-item"><span class="tod-poi-icon">🏢</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-offices">—</div><div class="tod-poi-type">Offices</div></div></div>
+      <div class="tod-poi-item"><span class="tod-poi-icon">🏪</span><div class="tod-poi-info"><div class="tod-poi-count" id="poi-commercial">—</div><div class="tod-poi-type">Commercial</div></div></div>
+    </div>
+
+    <!-- Upzoning slider -->
+    <div class="tod-section-label">Upzoning Simulation</div>
+    <div class="tod-slider-wrapper">
+      <div class="tod-slider-labels">
+        <span>Current Heights</span>
+        <span>2× Upzoned</span>
+      </div>
+      <input type="range" id="tod-upzone-slider" min="1" max="2" step="0.05" value="1" oninput="todUpdateUpzone(this.value)">
+      <div id="tod-upzone-val">Current (1.0×)</div>
+    </div>
+
+    <!-- Potential box -->
+    <div id="tod-potential-box">
+      <div class="tod-potential-title">🏗 Upzoning Potential</div>
+      <div class="tod-potential-grid">
+        <div class="tod-potential-item">
+          <div class="tod-potential-val" id="tod-added-units">~680</div>
+          <div class="tod-potential-lbl">Added Units</div>
+        </div>
+        <div class="tod-potential-item">
+          <div class="tod-potential-val" id="tod-added-residents">~1,360</div>
+          <div class="tod-potential-lbl">Added Residents</div>
+        </div>
+        <div class="tod-potential-item">
+          <div class="tod-potential-val" id="tod-floor-area">—</div>
+          <div class="tod-potential-lbl">Est. Floor Area</div>
+        </div>
+        <div class="tod-potential-item">
+          <div class="tod-potential-val" id="tod-buildings-count">—</div>
+          <div class="tod-potential-lbl">Buildings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zoning color legend -->
+    <div id="tod-zoning-legend-mini" class="tod-zoning-legend">
+      <div class="tod-zl-row"><div class="tod-zl-dot" style="background:#4fc3f7"></div>Residential</div>
+      <div class="tod-zl-row"><div class="tod-zl-dot" style="background:#ff9a3c"></div>Commercial</div>
+      <div class="tod-zl-row"><div class="tod-zl-dot" style="background:#a78bfa"></div>Mixed-Use</div>
+      <div class="tod-zl-row"><div class="tod-zl-dot" style="background:#64748b"></div>Unknown</div>
+    </div>
+
+    <div class="tod-source">Sources: Mapbox Isochrone API · OpenStreetMap Overpass API · U.S. Census ACS 2023</div>
+  </div>
+</div>
+
 <div id="title">
   <h1>Tampa Transit Master Plan</h1>
   <p>Proposed Transit Corridors — Tampa, FL</p>
@@ -1159,16 +1603,512 @@
   window.addEventListener('load', loadPopData);
 </script>
 
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  TOD ANALYSIS — Palma Ceia Station
+// ═══════════════════════════════════════════════════════════════
+const TOD_STATION = {
+  name: 'Palma Ceia',
+  lat:  27.919730433162712,
+  lng: -82.49320612225347
+};
+
+// All TOD layer IDs for clean teardown
+const TOD_LAYERS = [
+  'tod-isochrone-fill','tod-isochrone-border',
+  'tod-circle-fill','tod-circle-border',
+  'tod-heatmap',
+  'tod-buildings-fill', 'tod-buildings-outline', 'tod-buildings-current'
+];
+const TOD_SOURCES = ['tod-isochrone','tod-circle','tod-heatmap-src','tod-buildings-src','tod-buildings-render'];
+
+let todState = {
+  open: false,
+  view: null,           // 'density' | 'zoning' | 'both' | null
+  catchment: 'walk',    // 'walk' | 'circle'
+  upzoneFactor: 1.0,
+  isochroneGeoJSON: null,
+  poiLoaded: false,
+  buildingsLoaded: false,
+  upzoneMultiplier: 1.0
+};
+
+// ── Helpers ──
+function todShow(id)  { const el=document.getElementById(id); if(el) el.style.display='block'; }
+function todHide(id)  { const el=document.getElementById(id); if(el) el.style.display='none'; }
+function todSetLoading(msg) {
+  if(msg) { document.getElementById('tod-loading-msg').textContent=msg; todShow('tod-loading'); }
+  else     { todHide('tod-loading'); }
+}
+
+function cleanTodLayers() {
+  if(typeof map === 'undefined') return;
+  TOD_LAYERS.forEach(id => { try { if(map.getLayer(id)) map.removeLayer(id); } catch(e){} });
+  TOD_SOURCES.forEach(id => { try { if(map.getSource(id)) map.removeSource(id); } catch(e){} });
+}
+
+// ── Open / Close ──
+function openTodPanel() {
+  todState.open = true;
+  todShow('tod-panel');
+  // Draw catchment immediately
+  todDrawCatchment();
+}
+
+function closeTodPanel() {
+  todState.open = false;
+  todHide('tod-panel');
+  todHide('tod-potential-box');
+  cleanTodLayers();
+  todState.view = null;
+  todState.poiLoaded = false;
+  todState.buildingsLoaded = false;
+  // Reset button states
+  ['tod-btn-density','tod-btn-zoning','tod-btn-both'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.className = 'tod-toggle-btn';
+  });
+}
+
+// ── Catchment ──
+async function todDrawCatchment() {
+  cleanTodLayers();
+  if(todState.catchment === 'walk') {
+    await todDrawIsochrone();
+  } else {
+    todDrawCircle();
+  }
+}
+
+async function todDrawIsochrone() {
+  todSetLoading('Fetching walk isochrone...');
+  try {
+    const url = `https://api.mapbox.com/isochrone/v1/mapbox/walking/${TOD_STATION.lng},${TOD_STATION.lat}?contours_minutes=10&polygons=true&access_token=${mapboxgl.accessToken}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('Isochrone API failed');
+    const geojson = await res.json();
+    todState.isochroneGeoJSON = geojson;
+
+    // Estimate walk area in km²
+    if(geojson.features && geojson.features.length > 0) {
+      const coords = geojson.features[0].geometry.coordinates[0];
+      const areaSqKm = Math.abs(coords.reduce((acc, c, i, arr) => {
+        const j = (i+1) % arr.length;
+        return acc + c[0]*arr[j][1] - arr[j][0]*c[1];
+      }, 0)) / 2 * 111.32 * 111.32 * Math.cos(TOD_STATION.lat * Math.PI / 180);
+      document.getElementById('tod-walk-area').textContent = areaSqKm.toFixed(2) + ' km²';
+    }
+
+    if(!map.getSource('tod-isochrone')) {
+      map.addSource('tod-isochrone', { type: 'geojson', data: geojson });
+    }
+    if(!map.getLayer('tod-isochrone-fill')) {
+      map.addLayer({
+        id: 'tod-isochrone-fill', type: 'fill', source: 'tod-isochrone',
+        paint: { 'fill-color': '#a78bfa', 'fill-opacity': 0.1 }
+      });
+    }
+    if(!map.getLayer('tod-isochrone-border')) {
+      map.addLayer({
+        id: 'tod-isochrone-border', type: 'line', source: 'tod-isochrone',
+        paint: { 'line-color': '#a78bfa', 'line-width': 2, 'line-opacity': 0.8, 'line-dasharray': [4, 2] }
+      });
+    }
+  } catch(e) {
+    console.warn('TOD isochrone error:', e);
+    todDrawCircle(); // fallback
+  }
+  todSetLoading(null);
+}
+
+function todDrawCircle() {
+  // Generate 800m circle as GeoJSON polygon
+  const center = [TOD_STATION.lng, TOD_STATION.lat];
+  const radiusKm = 0.8;
+  const points = 64;
+  const coords = [];
+  for(let i = 0; i <= points; i++) {
+    const angle = (i / points) * 2 * Math.PI;
+    const dx = radiusKm / 111.32;
+    const dy = radiusKm / (111.32 * Math.cos(center[1] * Math.PI / 180));
+    coords.push([center[0] + dy * Math.sin(angle), center[1] + dx * Math.cos(angle)]);
+  }
+  const circleGeoJSON = { type:'FeatureCollection', features: [{
+    type:'Feature', geometry: { type:'Polygon', coordinates:[coords] }, properties:{}
+  }]};
+  todState.isochroneGeoJSON = circleGeoJSON;
+  document.getElementById('tod-walk-area').textContent = '~2.01 km²';
+
+  if(!map.getSource('tod-circle')) {
+    map.addSource('tod-circle', { type:'geojson', data: circleGeoJSON });
+  }
+  if(!map.getLayer('tod-circle-fill')) {
+    map.addLayer({ id:'tod-circle-fill', type:'fill', source:'tod-circle',
+      paint:{ 'fill-color':'#ff6b6b', 'fill-opacity':0.08 }
+    });
+  }
+  if(!map.getLayer('tod-circle-border')) {
+    map.addLayer({ id:'tod-circle-border', type:'line', source:'tod-circle',
+      paint:{ 'line-color':'#ff6b6b', 'line-width':2, 'line-opacity':0.6, 'line-dasharray':[3,2] }
+    });
+  }
+  todSetLoading(null);
+}
+
+function todToggleCatchment(mode) {
+  todState.catchment = mode;
+  document.getElementById('tod-catch-walk').classList.toggle('active', mode === 'walk');
+  document.getElementById('tod-catch-circle').classList.toggle('active', mode === 'circle');
+  // Remove old catchment layers before re-drawing
+  ['tod-isochrone-fill','tod-isochrone-border','tod-circle-fill','tod-circle-border'].forEach(id => {
+    try { if(map.getLayer(id)) map.removeLayer(id); } catch(e){}
+  });
+  ['tod-isochrone','tod-circle'].forEach(id => {
+    try { if(map.getSource(id)) map.removeSource(id); } catch(e){}
+  });
+  todState.isochroneGeoJSON = null;
+  todDrawCatchment().then(() => {
+    // Re-apply current view layers if active
+    if(todState.view) {
+      const v = todState.view;
+      todState.view = null;
+      todSetView(v);
+    }
+  });
+}
+
+// ── Build bounding box from isochrone for Overpass ──
+function todGetBbox() {
+  if(!todState.isochroneGeoJSON) return null;
+  const allCoords = [];
+  todState.isochroneGeoJSON.features.forEach(f => {
+    const ring = f.geometry.type === 'Polygon'
+      ? f.geometry.coordinates[0]
+      : f.geometry.coordinates[0][0];
+    ring.forEach(c => allCoords.push(c));
+  });
+  const lngs = allCoords.map(c => c[0]);
+  const lats = allCoords.map(c => c[1]);
+  return {
+    minLat: Math.min(...lats), maxLat: Math.max(...lats),
+    minLng: Math.min(...lngs), maxLng: Math.max(...lngs)
+  };
+}
+
+// ── Fetch POIs from Overpass ──
+async function todFetchPOIs() {
+  if(todState.poiLoaded) return;
+  const bbox = todGetBbox();
+  if(!bbox) return;
+  todSetLoading('Fetching POIs from OpenStreetMap...');
+  document.getElementById('tod-poi-status').textContent = 'Loading...';
+
+  const b = `${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng}`;
+  const query = `[out:json][timeout:30];(
+    node["amenity"~"restaurant|cafe|fast_food|bar|pub"](${b});
+    node["shop"](${b});
+    node["amenity"="school"](${b});
+    way["amenity"="school"](${b});
+    node["leisure"~"park|playground|garden"](${b});
+    way["leisure"~"park|playground|garden"](${b});
+    node["office"](${b});
+    node["amenity"~"office|bank|pharmacy"](${b});
+    node["amenity"~"supermarket|convenience|marketplace"](${b});
+    way["shop"~"supermarket|mall"](${b});
+  );out center;`;
+
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query)
+    });
+    const data = await res.json();
+    const elements = data.elements || [];
+
+    // Categorize
+    let restaurants=0, shops=0, parks=0, schools=0, offices=0, commercial=0;
+    const heatPoints = [];
+
+    elements.forEach(el => {
+      const lat = el.lat || el.center?.lat;
+      const lng = el.lon || el.center?.lon;
+      if(!lat || !lng) return;
+      const t = el.tags || {};
+
+      if(t.amenity && /restaurant|cafe|fast_food|bar|pub/.test(t.amenity)) restaurants++;
+      else if(t.shop) shops++;
+      else if(t.amenity === 'school' || t.amenity === 'kindergarten') schools++;
+      else if(t.leisure && /park|playground|garden/.test(t.leisure)) parks++;
+      else if(t.office || (t.amenity && /office|bank|pharmacy/.test(t.amenity))) offices++;
+      else commercial++;
+
+      heatPoints.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lng,lat] }, properties:{ weight:1 } });
+    });
+
+    const total = restaurants+shops+parks+schools+offices+commercial;
+    document.getElementById('tod-poi-total').textContent = total;
+    document.getElementById('poi-restaurants').textContent = restaurants;
+    document.getElementById('poi-shops').textContent = shops;
+    document.getElementById('poi-parks').textContent = parks;
+    document.getElementById('poi-schools').textContent = schools;
+    document.getElementById('poi-offices').textContent = offices;
+    document.getElementById('poi-commercial').textContent = commercial;
+    document.getElementById('tod-poi-status').textContent = `${total} POIs found within catchment area`;
+
+    // Build heatmap GeoJSON
+    const heatGeoJSON = { type:'FeatureCollection', features: heatPoints };
+    if(map.getSource('tod-heatmap-src')) {
+      map.getSource('tod-heatmap-src').setData(heatGeoJSON);
+    } else {
+      map.addSource('tod-heatmap-src', { type:'geojson', data: heatGeoJSON });
+    }
+    todState.poiLoaded = true;
+  } catch(e) {
+    console.warn('TOD POI fetch error:', e);
+    document.getElementById('tod-poi-status').textContent = 'POI data unavailable (try again)';
+  }
+  todSetLoading(null);
+}
+
+// ── Fetch buildings from Overpass ──
+async function todFetchBuildings() {
+  if(todState.buildingsLoaded) return;
+
+  // Always use a fixed 800m bbox around Palma Ceia — reliable regardless of isochrone state
+  const R = 0.0072; // ~800m in degrees
+  const lat = TOD_STATION.lat, lng = TOD_STATION.lng;
+  const b = `${lat - R},${lng - R},${lat + R},${lng + R}`;
+
+  const statusEl = document.getElementById('tod-poi-status');
+  statusEl.textContent = 'Fetching buildings from OpenStreetMap...';
+  todSetLoading('Fetching building footprints...');
+
+  const query = `[out:json][timeout:45];(way["building"](${b}););out body geom;`;
+
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query)
+    });
+
+    if(!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+    const data = await res.json();
+    const elements = data.elements || [];
+    statusEl.textContent = `Processing ${elements.length} raw elements...`;
+
+    const features = [];
+    let buildingCount = 0;
+    let totalFloorArea = 0;
+
+    elements.forEach(el => {
+      if(!el.geometry || el.geometry.length < 3) return;
+      // Close the polygon ring if needed
+      const coords = el.geometry.map(n => [n.lon, n.lat]);
+      if(coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) {
+        coords.push(coords[0]);
+      }
+
+      const t = el.tags || {};
+      const bType = (t.building || 'yes').toLowerCase();
+
+      const levels = parseFloat(t['building:levels'] || '2') || 2;
+
+      // Area estimate in m²
+      let area = 0;
+      for(let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+        area += (coords[j][0] + coords[i][0]) * (coords[j][1] - coords[i][1]);
+      }
+      area = Math.abs(area / 2) * 111320 * 111320 * Math.cos(lat * Math.PI / 180);
+
+      // Color by building type
+      let color = '#94a3b8';
+      if(/^(residential|house|detached|semi|terrace|bungalow|cabin|farm|ger|houseboat|static_caravan|stilt_house|trullo)$/.test(bType)) {
+        color = '#4fc3f7';
+      } else if(/apartments|flat/.test(bType)) {
+        color = '#38bdf8';
+      } else if(/^(commercial|retail|supermarket|kiosk|mall|warehouse|industrial|factory|shed|storage_tank|greenhouse|barn|cowshed|farm_auxiliary|stable)$/.test(bType)) {
+        color = '#ff9a3c';
+      } else if(/^(office|civic|government|cathedral|chapel|church|mosque|religious|synagogue|shrine|temple|bakehouse|kindergarten|school|university|hospital|stadium|grandstand|public|toilets|train_station|transportation|parking|garages|service|tech_park)$/.test(bType)) {
+        color = '#a78bfa';
+      } else if(bType === 'yes' && (t.shop || t.amenity || t.office)) {
+        color = '#ff9a3c';
+      }
+
+      totalFloorArea += area * levels;
+      buildingCount++;
+
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [coords] },
+        properties: { color, bType, levels, height: levels * 3.5, area }
+      });
+    });
+
+    if(buildingCount === 0) {
+      statusEl.textContent = 'No buildings returned by Overpass. Try again.';
+      todSetLoading(null);
+      return;
+    }
+
+    const bldGeoJSON = { type: 'FeatureCollection', features };
+
+    if(map.getSource('tod-buildings-src')) {
+      map.getSource('tod-buildings-src').setData(bldGeoJSON);
+    } else {
+      map.addSource('tod-buildings-src', { type: 'geojson', data: bldGeoJSON });
+    }
+
+    document.getElementById('tod-buildings-count').textContent = buildingCount;
+    const floorAreaK = (totalFloorArea / 1000).toFixed(0);
+    document.getElementById('tod-floor-area').textContent = floorAreaK + 'k m²';
+    const addedUnits = Math.round((totalFloorArea * 0.5) / 85); // 50% residential, 85m²/unit
+    document.getElementById('tod-added-units').textContent = '~' + addedUnits.toLocaleString();
+    document.getElementById('tod-added-residents').textContent = '~' + Math.round(addedUnits * 2.1).toLocaleString();
+
+    statusEl.textContent = `${buildingCount} buildings loaded`;
+    todState.buildingsLoaded = true;
+
+  } catch(e) {
+    console.error('TOD buildings fetch error:', e);
+    statusEl.textContent = 'Error: ' + e.message;
+  }
+  todSetLoading(null);
+}
+
+// ── Add/remove heatmap layer ──
+function todShowHeatmap() {
+  if(!map.getSource('tod-heatmap-src')) return;
+  if(map.getLayer('tod-heatmap')) return;
+  map.addLayer({
+    id: 'tod-heatmap', type: 'heatmap', source: 'tod-heatmap-src',
+    paint: {
+      'heatmap-weight': 1,
+      'heatmap-intensity': ['interpolate',['linear'],['zoom'], 10, 0.8, 15, 2],
+      'heatmap-color': ['interpolate',['linear'],['heatmap-density'],
+        0, 'rgba(74,222,128,0)', 0.2, 'rgba(74,222,128,0.4)',
+        0.5, 'rgba(245,197,24,0.7)', 0.8, 'rgba(255,107,107,0.85)', 1, 'rgba(255,50,50,1)'
+      ],
+      'heatmap-radius': ['interpolate',['linear'],['zoom'], 10, 15, 15, 30],
+      'heatmap-opacity': 0.75
+    }
+  });
+}
+
+function todHideHeatmap() {
+  try { if(map.getLayer('tod-heatmap')) map.removeLayer('tod-heatmap'); } catch(e){}
+}
+
+// ── Add/remove building outlines + fills ──
+// Renders OSM footprints as color-coded fill + white outline. Simple and reliable.
+function todShowBuildings(upzoneFactor) {
+  const src = map.getSource('tod-buildings-src');
+  if(!src) { console.warn('TOD: tod-buildings-src not found'); return; }
+  console.log('TOD: todShowBuildings called, factor=', upzoneFactor);
+
+  // Slider effect: at 1.0 = white outlines only (current state)
+  //                at 2.0 = bright colored fills (upzoned density)
+  const t = upzoneFactor - 1.0; // 0.0 → 1.0
+  const fillOpacity   = t * 0.55;          // 0 at current, 0.55 at 2×
+  const outlineOpacity = 0.5 + t * 0.3;   // 0.5 → 0.8
+  const outlineWidth  = 0.8 + t * 1.2;    // 0.8px → 2px
+  const outlineColor  = t < 0.3 ? '#ffffff' : ['interpolate',['linear'],['zoom'],13,'#ffffff',16,'#e2e8f0'];
+
+  // Fill layer — color-coded, opacity grows with slider
+  if(!map.getLayer('tod-buildings-fill')) {
+    map.addLayer({
+      id: 'tod-buildings-fill',
+      type: 'fill',
+      source: 'tod-buildings-src',
+      paint: { 'fill-color': ['get','color'], 'fill-opacity': fillOpacity }
+    });
+  } else {
+    map.setPaintProperty('tod-buildings-fill', 'fill-opacity', fillOpacity);
+  }
+
+  // Outline layer — always visible, gets brighter/thicker with slider
+  if(!map.getLayer('tod-buildings-outline')) {
+    map.addLayer({
+      id: 'tod-buildings-outline',
+      type: 'line',
+      source: 'tod-buildings-src',
+      paint: { 'line-color': '#ffffff', 'line-width': outlineWidth, 'line-opacity': outlineOpacity }
+    });
+  } else {
+    map.setPaintProperty('tod-buildings-outline', 'line-width', outlineWidth);
+    map.setPaintProperty('tod-buildings-outline', 'line-opacity', outlineOpacity);
+  }
+}
+
+function todHideBuildings() {
+  ['tod-buildings-fill', 'tod-buildings-outline'].forEach(id => {
+    try { if(map.getLayer(id)) map.removeLayer(id); } catch(e) {}
+  });
+}
+
+// ── Set view mode ──
+async function todSetView(mode) {
+  todState.view = mode;
+
+  const btnMap = { density:'tod-btn-density', zoning:'tod-btn-zoning', both:'tod-btn-both' };
+  const classMap = { density:'active-density', zoning:'active-zoning', both:'active-both' };
+  Object.keys(btnMap).forEach(k => {
+    const el = document.getElementById(btnMap[k]);
+    if(el) el.className = 'tod-toggle-btn' + (k===mode ? ' '+classMap[k] : '');
+  });
+
+  todHideHeatmap();
+  todHideBuildings();
+
+  const zLegend = document.getElementById('tod-zoning-legend-mini');
+
+  if(mode === 'density' || mode === 'both') {
+    if(!todState.poiLoaded) await todFetchPOIs();
+    todShowHeatmap();
+    if(zLegend) zLegend.classList.remove('visible');
+  }
+  if(mode === 'zoning' || mode === 'both') {
+    console.log('TOD: fetching buildings, loaded=', todState.buildingsLoaded);
+    if(!todState.buildingsLoaded) await todFetchBuildings();
+    console.log('TOD: after fetch, loaded=', todState.buildingsLoaded, 'src exists=', !!map.getSource('tod-buildings-src'));
+    todShowBuildings(todState.upzoneFactor);
+    todShow('tod-potential-box');
+    if(zLegend) zLegend.classList.add('visible');
+    map.easeTo({ pitch: 0, duration: 400 }); // stay flat — no broken 3D
+  } else {
+    todHide('tod-potential-box');
+  }
+}
+
+// ── Upzoning slider ──
+// Slider goes 1.0 (current: outlines only) → 2.0 (upzoned: filled + thick outlines)
+function todUpdateUpzone(val) {
+  const f = parseFloat(val);
+  todState.upzoneFactor = f;
+  const pct = Math.round((f - 1.0) * 100);
+  const label = f <= 1.0 ? 'Current state (outlines only)' : `+${pct}% upzoning intensity`;
+  document.getElementById('tod-upzone-val').textContent = label;
+
+  if(todState.buildingsLoaded && (todState.view === 'zoning' || todState.view === 'both')) {
+    todShowBuildings(f);
+    // Show potential stats once slider moves above baseline
+    if(f > 1.05) {
+      todShow('tod-potential-box');
+    } else {
+      todHide('tod-potential-box');
+    }
+  }
+}
+</script>
+
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
 <script>
   // -------------------------------------------------------
-  // MAPBOX TOKEN
+  // MAPBOX TOKEN — defined once at top of file in <head>
   // -------------------------------------------------------
-  mapboxgl.accessToken = 'pk.eyJ1IjoidGFsdmFyZXpqciIsImEiOiJjbW9reW40MHYwY2N0MnFuY2FhbWpzMmQ0In0.tW_wPe5mbI-ZnmrYib1IfA';
+  mapboxgl.accessToken = MAPBOX_TOKEN;
 
-  // -------------------------------------------------------
-  // OPENROUTESERVICE API KEY
-  // -------------------------------------------------------
   // ISOCHRONE: Mapbox Isochrone API — uses same token as map
   // -------------------------------------------------------
   async function showWalkIsochrone(lngLat, stationName, lineColor) {
@@ -1468,6 +2408,23 @@
       const props = e.features[0].properties;
       const coords = e.features[0].geometry.coordinates;
       const lngLat = { lng: coords[0], lat: coords[1] };
+
+      // ── PALMA CEIA → Open TOD panel instead of standard popup ──
+      if(props.name === 'Palma Ceia') {
+        // Still show the normal isochrone + popup
+        new mapboxgl.Popup({ offset: 14 })
+          .setLngLat(coords)
+          .setHTML(`
+            <span class="${props.major ? 'popup-major' : ''}">${props.name}</span>
+            <div class="popup-walk-note">🏙 TOD Analysis panel opened →</div>
+          `)
+          .addTo(map);
+        showWalkIsochrone(lngLat, props.name, 'red');
+        // Open TOD panel
+        openTodPanel();
+        map.easeTo({ center: coords, zoom: Math.max(map.getZoom(), 14), duration: 600 });
+        return;
+      }
 
       new mapboxgl.Popup({ offset: 14 })
         .setLngLat(coords)
@@ -1940,6 +2897,13 @@
 
     map.on('click', 'station-bg', (e) => {
       const props = e.features[0].properties; const coords = e.features[0].geometry.coordinates; const lngLat = { lng: coords[0], lat: coords[1] };
+      if(props.name === 'Palma Ceia') {
+        new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="${props.major ? 'popup-major' : ''}">${props.name}</span><div class="popup-walk-note">🏙 TOD Analysis panel opened →</div>`).addTo(map);
+        showWalkIsochrone(lngLat, props.name, 'red');
+        openTodPanel();
+        map.easeTo({ center: coords, zoom: Math.max(map.getZoom(), 14), duration: 600 });
+        return;
+      }
       new mapboxgl.Popup({ offset: 14 }).setLngLat(coords).setHTML(`<span class="${props.major ? 'popup-major' : ''}">${props.name}</span><div class="popup-walk-note">⬤ 10-min walk zone loading...</div>`).addTo(map);
       showWalkIsochrone(lngLat, props.name, 'red');
     });
@@ -2003,6 +2967,10 @@
         if (map.getLayer('isochrone-fill')) map.removeLayer('isochrone-fill');
         if (map.getLayer('isochrone-border')) map.removeLayer('isochrone-border');
         if (map.getSource('isochrone')) map.removeSource('isochrone');
+        // Close TOD panel if open and clicking empty map
+        if(typeof todState !== 'undefined' && todState.open) {
+          closeTodPanel();
+        }
         if (zoningOn) {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['hc-zoning-fill'] });
           if (zf.length > 0) showZoningPopup(zf[0].properties, e.lngLat);
